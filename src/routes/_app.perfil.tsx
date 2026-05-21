@@ -44,7 +44,7 @@ function Perfil() {
     }
   }, [profile]);
 
-  const updatePrivacy = async (patch: Record<string, any>) => {
+  const updatePrivacy = async (patch: Partial<{ privacy_mode: string; hide_start_end: boolean; invisible_mode: boolean }>) => {
     if (!user) return;
     const { error } = await supabase.from("profiles").update(patch).eq("id", user.id);
     if (error) return toast.error(error.message);
