@@ -19,7 +19,7 @@ export function BottomNav() {
           const active = pathname.startsWith(to);
           if (center) {
             return (
-              <Link key={to} to={to} className="flex justify-center -mt-6">
+              <Link key={to} to={to as never} className="flex justify-center -mt-6">
                 <span className="grid place-items-center h-14 w-14 rounded-full bg-primary text-primary-foreground glow-primary active:scale-95 transition">
                   <Icon className="h-6 w-6" strokeWidth={2.5} />
                 </span>
@@ -27,7 +27,7 @@ export function BottomNav() {
             );
           }
           return (
-            <Link key={to} to={to} className="flex flex-col items-center gap-1 py-2 active:scale-95 transition">
+            <Link key={to} to={to as never} className="flex flex-col items-center gap-1 py-2 active:scale-95 transition">
               <Icon className={`h-5 w-5 ${active ? "text-primary" : "text-muted-foreground"}`} />
               <span className={`text-[10px] font-medium ${active ? "text-primary" : "text-muted-foreground"}`}>{label}</span>
             </Link>
