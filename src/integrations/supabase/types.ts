@@ -14,7 +14,196 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      activities: {
+        Row: {
+          ai_insights: string | null
+          avg_heart_rate: number | null
+          avg_speed: number | null
+          calories_burned: number | null
+          created_at: string | null
+          distance_meters: number | null
+          duration_seconds: number | null
+          effort_level: number | null
+          elevation_gain: number | null
+          ended_at: string | null
+          id: string
+          max_heart_rate: number | null
+          max_speed: number | null
+          notes: string | null
+          privacy: string | null
+          route_points: Json | null
+          started_at: string
+          title: string | null
+          type: string
+          user_id: string
+          weather_condition: Json | null
+        }
+        Insert: {
+          ai_insights?: string | null
+          avg_heart_rate?: number | null
+          avg_speed?: number | null
+          calories_burned?: number | null
+          created_at?: string | null
+          distance_meters?: number | null
+          duration_seconds?: number | null
+          effort_level?: number | null
+          elevation_gain?: number | null
+          ended_at?: string | null
+          id?: string
+          max_heart_rate?: number | null
+          max_speed?: number | null
+          notes?: string | null
+          privacy?: string | null
+          route_points?: Json | null
+          started_at: string
+          title?: string | null
+          type: string
+          user_id: string
+          weather_condition?: Json | null
+        }
+        Update: {
+          ai_insights?: string | null
+          avg_heart_rate?: number | null
+          avg_speed?: number | null
+          calories_burned?: number | null
+          created_at?: string | null
+          distance_meters?: number | null
+          duration_seconds?: number | null
+          effort_level?: number | null
+          elevation_gain?: number | null
+          ended_at?: string | null
+          id?: string
+          max_heart_rate?: number | null
+          max_speed?: number | null
+          notes?: string | null
+          privacy?: string | null
+          route_points?: Json | null
+          started_at?: string
+          title?: string | null
+          type?: string
+          user_id?: string
+          weather_condition?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activities_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      health_metrics: {
+        Row: {
+          created_at: string | null
+          date: string
+          energy_level: number | null
+          hrv: number | null
+          id: string
+          muscle_soreness: number | null
+          recovery_score: number | null
+          resting_heart_rate: number | null
+          sleep_hours: number | null
+          sleep_quality: number | null
+          stress_level: number | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          date?: string
+          energy_level?: number | null
+          hrv?: number | null
+          id?: string
+          muscle_soreness?: number | null
+          recovery_score?: number | null
+          resting_heart_rate?: number | null
+          sleep_hours?: number | null
+          sleep_quality?: number | null
+          stress_level?: number | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          date?: string
+          energy_level?: number | null
+          hrv?: number | null
+          id?: string
+          muscle_soreness?: number | null
+          recovery_score?: number | null
+          resting_heart_rate?: number | null
+          sleep_hours?: number | null
+          sleep_quality?: number | null
+          stress_level?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "health_metrics_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          birth_date: string | null
+          created_at: string | null
+          fitness_level: string | null
+          full_name: string | null
+          height_cm: number | null
+          hide_start_end: boolean | null
+          id: string
+          invisible_mode: boolean | null
+          onboarded: boolean | null
+          primary_goals: string[] | null
+          privacy_mode: string | null
+          updated_at: string | null
+          username: string | null
+          weight_kg: number | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          birth_date?: string | null
+          created_at?: string | null
+          fitness_level?: string | null
+          full_name?: string | null
+          height_cm?: number | null
+          hide_start_end?: boolean | null
+          id: string
+          invisible_mode?: boolean | null
+          onboarded?: boolean | null
+          primary_goals?: string[] | null
+          privacy_mode?: string | null
+          updated_at?: string | null
+          username?: string | null
+          weight_kg?: number | null
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          birth_date?: string | null
+          created_at?: string | null
+          fitness_level?: string | null
+          full_name?: string | null
+          height_cm?: number | null
+          hide_start_end?: boolean | null
+          id?: string
+          invisible_mode?: boolean | null
+          onboarded?: boolean | null
+          primary_goals?: string[] | null
+          privacy_mode?: string | null
+          updated_at?: string | null
+          username?: string | null
+          weight_kg?: number | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
