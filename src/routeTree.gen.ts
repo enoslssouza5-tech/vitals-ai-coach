@@ -9,38 +9,201 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TreinoAtivoRouteImport } from './routes/treino-ativo'
+import { Route as OnboardingRouteImport } from './routes/onboarding'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AppTreinoRouteImport } from './routes/_app.treino'
+import { Route as AppSocialRouteImport } from './routes/_app.social'
+import { Route as AppSaudeRouteImport } from './routes/_app.saude'
+import { Route as AppRotasRouteImport } from './routes/_app.rotas'
+import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
+import { Route as AppHistoricoRouteImport } from './routes/_app.historico'
+import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 
+const TreinoAtivoRoute = TreinoAtivoRouteImport.update({
+  id: '/treino-ativo',
+  path: '/treino-ativo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppTreinoRoute = AppTreinoRouteImport.update({
+  id: '/treino',
+  path: '/treino',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSocialRoute = AppSocialRouteImport.update({
+  id: '/social',
+  path: '/social',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppSaudeRoute = AppSaudeRouteImport.update({
+  id: '/saude',
+  path: '/saude',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppRotasRoute = AppRotasRouteImport.update({
+  id: '/rotas',
+  path: '/rotas',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPerfilRoute = AppPerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppHistoricoRoute = AppHistoricoRouteImport.update({
+  id: '/historico',
+  path: '/historico',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/treino-ativo': typeof TreinoAtivoRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/historico': typeof AppHistoricoRoute
+  '/perfil': typeof AppPerfilRoute
+  '/rotas': typeof AppRotasRoute
+  '/saude': typeof AppSaudeRoute
+  '/social': typeof AppSocialRoute
+  '/treino': typeof AppTreinoRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/treino-ativo': typeof TreinoAtivoRoute
+  '/dashboard': typeof AppDashboardRoute
+  '/historico': typeof AppHistoricoRoute
+  '/perfil': typeof AppPerfilRoute
+  '/rotas': typeof AppRotasRoute
+  '/saude': typeof AppSaudeRoute
+  '/social': typeof AppSocialRoute
+  '/treino': typeof AppTreinoRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_app': typeof AppRouteWithChildren
+  '/login': typeof LoginRoute
+  '/onboarding': typeof OnboardingRoute
+  '/treino-ativo': typeof TreinoAtivoRoute
+  '/_app/dashboard': typeof AppDashboardRoute
+  '/_app/historico': typeof AppHistoricoRoute
+  '/_app/perfil': typeof AppPerfilRoute
+  '/_app/rotas': typeof AppRotasRoute
+  '/_app/saude': typeof AppSaudeRoute
+  '/_app/social': typeof AppSocialRoute
+  '/_app/treino': typeof AppTreinoRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/onboarding'
+    | '/treino-ativo'
+    | '/dashboard'
+    | '/historico'
+    | '/perfil'
+    | '/rotas'
+    | '/saude'
+    | '/social'
+    | '/treino'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/login'
+    | '/onboarding'
+    | '/treino-ativo'
+    | '/dashboard'
+    | '/historico'
+    | '/perfil'
+    | '/rotas'
+    | '/saude'
+    | '/social'
+    | '/treino'
+  id:
+    | '__root__'
+    | '/'
+    | '/_app'
+    | '/login'
+    | '/onboarding'
+    | '/treino-ativo'
+    | '/_app/dashboard'
+    | '/_app/historico'
+    | '/_app/perfil'
+    | '/_app/rotas'
+    | '/_app/saude'
+    | '/_app/social'
+    | '/_app/treino'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AppRoute: typeof AppRouteWithChildren
+  LoginRoute: typeof LoginRoute
+  OnboardingRoute: typeof OnboardingRoute
+  TreinoAtivoRoute: typeof TreinoAtivoRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/treino-ativo': {
+      id: '/treino-ativo'
+      path: '/treino-ativo'
+      fullPath: '/treino-ativo'
+      preLoaderRoute: typeof TreinoAtivoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/onboarding': {
+      id: '/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof OnboardingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +211,87 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/treino': {
+      id: '/_app/treino'
+      path: '/treino'
+      fullPath: '/treino'
+      preLoaderRoute: typeof AppTreinoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/social': {
+      id: '/_app/social'
+      path: '/social'
+      fullPath: '/social'
+      preLoaderRoute: typeof AppSocialRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/saude': {
+      id: '/_app/saude'
+      path: '/saude'
+      fullPath: '/saude'
+      preLoaderRoute: typeof AppSaudeRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/rotas': {
+      id: '/_app/rotas'
+      path: '/rotas'
+      fullPath: '/rotas'
+      preLoaderRoute: typeof AppRotasRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/perfil': {
+      id: '/_app/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof AppPerfilRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/historico': {
+      id: '/_app/historico'
+      path: '/historico'
+      fullPath: '/historico'
+      preLoaderRoute: typeof AppHistoricoRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
+interface AppRouteChildren {
+  AppDashboardRoute: typeof AppDashboardRoute
+  AppHistoricoRoute: typeof AppHistoricoRoute
+  AppPerfilRoute: typeof AppPerfilRoute
+  AppRotasRoute: typeof AppRotasRoute
+  AppSaudeRoute: typeof AppSaudeRoute
+  AppSocialRoute: typeof AppSocialRoute
+  AppTreinoRoute: typeof AppTreinoRoute
+}
+
+const AppRouteChildren: AppRouteChildren = {
+  AppDashboardRoute: AppDashboardRoute,
+  AppHistoricoRoute: AppHistoricoRoute,
+  AppPerfilRoute: AppPerfilRoute,
+  AppRotasRoute: AppRotasRoute,
+  AppSaudeRoute: AppSaudeRoute,
+  AppSocialRoute: AppSocialRoute,
+  AppTreinoRoute: AppTreinoRoute,
+}
+
+const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AppRoute: AppRouteWithChildren,
+  LoginRoute: LoginRoute,
+  OnboardingRoute: OnboardingRoute,
+  TreinoAtivoRoute: TreinoAtivoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
