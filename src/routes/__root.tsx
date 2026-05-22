@@ -9,6 +9,8 @@ import {
 } from "@tanstack/react-router";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth";
+import { AuthModal } from "@/components/AuthModal";
+import { PwaRegister } from "@/components/PwaRegister";
 
 import appCss from "../styles.css?url";
 
@@ -46,12 +48,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1" },
-      { name: "theme-color", content: "#0A0A0A" },
+      { name: "theme-color", content: "#0B1023" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
+      { name: "mobile-web-app-capable", content: "yes" },
       { title: "Pulse — Treino Inteligente" },
       { name: "description", content: "Seu treinador pessoal com IA. Treine, recupere e evolua." },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
+      { rel: "manifest", href: "/manifest.json" },
+      { rel: "apple-touch-icon", href: "/icons/icon-192.png" },
+      { rel: "icon", href: "/icons/icon-192.png", sizes: "192x192" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500;700&display=swap" },
@@ -80,9 +88,11 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <PwaRegister />
         <div className="mx-auto max-w-md min-h-screen bg-background">
           <Outlet />
         </div>
+        <AuthModal />
         <Toaster theme="dark" position="top-center" />
       </AuthProvider>
     </QueryClientProvider>

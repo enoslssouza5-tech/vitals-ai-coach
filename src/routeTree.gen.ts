@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TreinoAtivoRouteImport } from './routes/treino-ativo'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
-import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/_app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppTreinoRouteImport } from './routes/_app.treino'
@@ -30,11 +29,6 @@ const TreinoAtivoRoute = TreinoAtivoRouteImport.update({
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
   path: '/onboarding',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRoute = AppRouteImport.update({
@@ -84,7 +78,6 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/treino-ativo': typeof TreinoAtivoRoute
   '/dashboard': typeof AppDashboardRoute
@@ -97,7 +90,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/treino-ativo': typeof TreinoAtivoRoute
   '/dashboard': typeof AppDashboardRoute
@@ -112,7 +104,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_app': typeof AppRouteWithChildren
-  '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/treino-ativo': typeof TreinoAtivoRoute
   '/_app/dashboard': typeof AppDashboardRoute
@@ -127,7 +118,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/login'
     | '/onboarding'
     | '/treino-ativo'
     | '/dashboard'
@@ -140,7 +130,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/login'
     | '/onboarding'
     | '/treino-ativo'
     | '/dashboard'
@@ -154,7 +143,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_app'
-    | '/login'
     | '/onboarding'
     | '/treino-ativo'
     | '/_app/dashboard'
@@ -169,7 +157,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRoute: typeof AppRouteWithChildren
-  LoginRoute: typeof LoginRoute
   OnboardingRoute: typeof OnboardingRoute
   TreinoAtivoRoute: typeof TreinoAtivoRoute
 }
@@ -188,13 +175,6 @@ declare module '@tanstack/react-router' {
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof OnboardingRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app': {
@@ -288,10 +268,19 @@ const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRoute: AppRouteWithChildren,
-  LoginRoute: LoginRoute,
   OnboardingRoute: OnboardingRoute,
   TreinoAtivoRoute: TreinoAtivoRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}
