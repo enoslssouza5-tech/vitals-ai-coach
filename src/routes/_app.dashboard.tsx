@@ -87,7 +87,7 @@ function Dashboard() {
     show: { 
       opacity: 1, 
       y: 0, 
-      transition: { type: "spring", stiffness: 300, damping: 24 } 
+      transition: { type: "spring" as const, stiffness: 300, damping: 24 } 
     }
   };
 
@@ -222,7 +222,7 @@ function Dashboard() {
                     className="w-full rounded-md"
                     initial={{ height: 0 }}
                     animate={{ height: `${(d.km / maxKm) * 100}%` }}
-                    transition={{ type: "spring", stiffness: 100, delay: 0.3 + i * 0.05 }}
+                    transition={{ type: "spring" as const, stiffness: 100, delay: 0.3 + i * 0.05 }}
                     style={{
                       background: d.isToday
                         ? "linear-gradient(to top, var(--color-primary), var(--color-primary-light))"

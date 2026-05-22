@@ -62,7 +62,7 @@ function Historico() {
     show: { 
       opacity: 1, 
       y: 0,
-      transition: { type: "spring", stiffness: 300, damping: 24 }
+      transition: { type: "spring" as const, stiffness: 300, damping: 24 }
     }
   };
 
@@ -159,7 +159,7 @@ function Historico() {
               initial={{ y: 150, scale: 0.95 }}
               animate={{ y: 0, scale: 1 }}
               exit={{ y: 150, scale: 0.95 }}
-              transition={{ type: "spring", stiffness: 260, damping: 26 }}
+              transition={{ type: "spring" as const, stiffness: 260, damping: 26 }}
             >
               <div className="flex items-center justify-between border-b border-border/20 pb-3 mb-4">
                 <div>

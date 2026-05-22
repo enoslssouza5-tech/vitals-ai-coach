@@ -85,7 +85,7 @@ function SaudePage() {
     show: { 
       opacity: 1, 
       y: 0,
-      transition: { type: "spring", stiffness: 300, damping: 24 }
+      transition: { type: "spring" as const, stiffness: 300, damping: 24 }
     }
   };
 
@@ -153,7 +153,7 @@ function SaudePage() {
                     className="w-full rounded-md" 
                     initial={{ height: 0 }}
                     animate={{ height: `${((h.recovery_score ?? 0) / maxHist) * 100}%` }}
-                    transition={{ type: "spring", stiffness: 100, delay: 0.2 + i * 0.04 }}
+                    transition={{ type: "spring" as const, stiffness: 100, delay: 0.2 + i * 0.04 }}
                     style={{ background: "linear-gradient(to top, var(--color-primary), var(--color-primary-light))" }} 
                   />
                 </div>
