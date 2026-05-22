@@ -1,12 +1,22 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
-import { useAuth, useAuthModal } from "@/lib/auth";
-import { supabase } from "@/integrations/supabase/client";
+import { useEffect, useRef, useState, lazy, Suspense } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Pause, Play, Square, Sparkles, Maximize2, Minimize2 } from "lucide-react";
+import { Pause, Play, Square, Sparkles, RotateCcw, Save } from "lucide-react";
 import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
-import { Counter } from "@/components/Counter";
+import {
+  estimarCalorias,
+  fmtDuracao,
+  haversine,
+  MODALIDADE_INFO,
+  salvarTreino,
+} from "@/lib/treino-history";
+import { gerarAnaliseCoach } from "@/lib/coach.functions";
+
+const RouteMap = lazy(() =>
+  import("@/components/RouteMap").then((m) => ({ default: m.RouteMap })),
+);
 
 const search = z.object({ type: z.string().default("running") });
 
@@ -15,266 +25,351 @@ export const Route = createFileRoute("/treino-ativo")({
   component: TreinoAtivo,
 });
 
-function fmt(s: number) {
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
-  return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${String(ss).padStart(2, "0")}` : `${m}:${String(ss).padStart(2, "0")}`;
-}
-
 function TreinoAtivo() {
-  const { user, isAuthenticated } = useAuth();
-  const { openAuthModal } = useAuthModal();
   const navigate = useNavigate();
   const { type } = Route.useSearch();
+  const info = MODALIDADE_INFO[type] ?? MODALIDADE_INFO.running;
+  const usaGPS = info.usaGPS;
+  const callCoach = useServerFn(gerarAnaliseCoach);
+
+  // Fases: 'countdown' | 'active' | 'finished'
+  const [fase, setFase] = useState<"countdown" | "active" | "finished">("countdown");
+  const [countdown, setCountdown] = useState(3);
 
   const [running, setRunning] = useState(true);
   const [seconds, setSeconds] = useState(0);
-  const [distance, setDistance] = useState(0);
-  const [hr, setHr] = useState(135);
-  const startedAt = useRef(new Date());
-  const [finished, setFinished] = useState(false);
-  const [focusMode, setFocusMode] = useState(false); // Fullscreen focus mode
+  const startedAt = useRef<Date | null>(null);
 
+  // GPS
+  const [pontos, setPontos] = useState<[number, number][]>([]);
+  const [distancia, setDistancia] = useState(0); // metros
+  const [gpsErro, setGpsErro] = useState<string | null>(null);
+  const watchId = useRef<number | null>(null);
+  const ultimoPonto = useRef<[number, number] | null>(null);
+
+  // FC simulada
+  const [hr, setHr] = useState(135);
+
+  // IA
+  const [analise, setAnalise] = useState<string | null>(null);
+  const [analiseLoading, setAnaliseLoading] = useState(false);
+
+  // ---------- Contagem regressiva ----------
   useEffect(() => {
-    if (!running || finished) return;
+    if (fase !== "countdown") return;
+    if (countdown <= 0) {
+      startedAt.current = new Date();
+      setFase("active");
+      return;
+    }
+    const t = setTimeout(() => setCountdown((c) => c - 1), 800);
+    return () => clearTimeout(t);
+  }, [fase, countdown]);
+
+  // ---------- Cronômetro ----------
+  useEffect(() => {
+    if (fase !== "active" || !running) return;
     const t = setInterval(() => {
       setSeconds((s) => s + 1);
-      setDistance((d) => d + 2.8 + Math.random() * 0.6);
       setHr((h) => Math.max(110, Math.min(175, h + Math.round((Math.random() - 0.5) * 4))));
     }, 1000);
     return () => clearInterval(t);
-  }, [running, finished]);
+  }, [fase, running]);
 
-  const pace = distance > 0 ? (seconds / 60) / (distance / 1000) : 0;
-  const paceStr = pace > 0 && isFinite(pace) ? `${Math.floor(pace)}:${String(Math.round((pace % 1) * 60)).padStart(2, "0")}` : "--:--";
-  const calories = Math.round(seconds * 0.18);
-
-  const save = async () => {
-    if (!isAuthenticated) {
-      openAuthModal();
+  // ---------- GPS ----------
+  useEffect(() => {
+    if (fase !== "active" || !usaGPS) return;
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      setGpsErro("📍 Geolocalização não suportada neste dispositivo.");
       return;
     }
-    const ended = new Date();
-    const insights = distance / 1000 > 5
-      ? "Treino sólido. Mantenha esse volume nas próximas sessões."
-      : "Ótimo aquecimento. Tente estender o tempo gradualmente nas próximas saídas.";
-    const { error } = await supabase.from("activities").insert({
-      user_id: user.id,
-      type, title: `${type === "running" ? "Corrida" : type === "cycling" ? "Pedal" : "Treino"} - ${ended.toLocaleDateString("pt-BR")}`,
-      started_at: startedAt.current.toISOString(),
-      ended_at: ended.toISOString(),
-      duration_seconds: seconds,
-      distance_meters: Math.round(distance),
-      avg_heart_rate: hr,
-      calories_burned: calories,
-      ai_insights: insights,
-    });
-    if (error) return toast.error(error.message);
-    toast.success("Treino salvo!");
-    navigate({ to: "/historico" });
+    const id = navigator.geolocation.watchPosition(
+      (pos) => {
+        const p: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+        if (ultimoPonto.current) {
+          const d = haversine(ultimoPonto.current, p);
+          if (d > 1 && d < 100) {
+            setDistancia((cur) => cur + d);
+          }
+        }
+        ultimoPonto.current = p;
+        setPontos((arr) => [...arr, p]);
+        setGpsErro(null);
+      },
+      (err) => {
+        if (err.code === err.PERMISSION_DENIED) {
+          setGpsErro("📍 Localização não autorizada. Distância não será rastreada.");
+        } else {
+          setGpsErro("📍 Sinal de GPS fraco. Tente em área aberta.");
+        }
+      },
+      { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 },
+    );
+    watchId.current = id;
+    return () => {
+      if (watchId.current != null) navigator.geolocation.clearWatch(watchId.current);
+      watchId.current = null;
+    };
+  }, [fase, usaGPS]);
+
+  // ---------- Encerrar ----------
+  const encerrar = async () => {
+    if (watchId.current != null && typeof navigator !== "undefined") {
+      navigator.geolocation.clearWatch(watchId.current);
+      watchId.current = null;
+    }
+    setRunning(false);
+    setFase("finished");
+
+    setAnaliseLoading(true);
+    try {
+      const km = distancia / 1000;
+      const pace =
+        usaGPS && km > 0 ? seconds / 60 / km : null;
+      const ritmoStr =
+        pace != null && isFinite(pace)
+          ? `${Math.floor(pace)}:${String(Math.round((pace % 1) * 60)).padStart(2, "0")}/km`
+          : null;
+      const calorias = estimarCalorias(type, seconds);
+      const r = await callCoach({
+        data: {
+          modalidade: info.label,
+          duracaoSeg: seconds,
+          distanciaMetros: Math.round(distancia),
+          caloriasKcal: calorias,
+          ritmoMedio: ritmoStr,
+          fcMedia: hr,
+        },
+      });
+      setAnalise(r.analise);
+    } catch (e) {
+      console.error(e);
+      setAnalise("Treino concluído! Mantenha o ritmo nas próximas sessões.");
+    } finally {
+      setAnaliseLoading(false);
+    }
   };
 
-  // 1. FINISHED SCREEN
-  if (finished) {
+  const salvar = () => {
+    const calorias = estimarCalorias(type, seconds);
+    const km = distancia / 1000;
+    const pace = usaGPS && km > 0 ? seconds / 60 / km : null;
+    const ritmoStr =
+      pace != null && isFinite(pace)
+        ? `${Math.floor(pace)}:${String(Math.round((pace % 1) * 60)).padStart(2, "0")}/km`
+        : null;
+
+    salvarTreino({
+      id: crypto.randomUUID?.() ?? String(Date.now()),
+      data: (startedAt.current ?? new Date()).toISOString(),
+      modalidade: type,
+      duracaoSeg: seconds,
+      distanciaMetros: Math.round(distancia),
+      caloriasKcal: calorias,
+      ritmoMedio: ritmoStr,
+      fcMedia: hr,
+      analiseIA: analise ?? undefined,
+    });
+    toast.success("✅ Treino salvo com sucesso!");
+    navigate({ to: "/treino" });
+  };
+
+  const treinarNovamente = () => {
+    setFase("countdown");
+    setCountdown(3);
+    setSeconds(0);
+    setDistancia(0);
+    setPontos([]);
+    ultimoPonto.current = null;
+    setAnalise(null);
+    setRunning(true);
+  };
+
+  // ---------- RENDER ----------
+
+  // Contagem regressiva
+  if (fase === "countdown") {
     return (
-      <div className="min-h-screen px-5 pt-safe pb-10 flex flex-col relative overflow-hidden select-none">
-        <div className="absolute inset-0" style={{
-          background: "radial-gradient(ellipse at 50% 20%, oklch(0.30 0.15 250 / 0.3) 0%, transparent 60%)"
-        }} />
-        
-        <div className="relative z-10 my-4">
-          <h1 className="text-3xl font-black tracking-tight text-left uppercase">TREINO CONCLUÍDO</h1>
-          <p className="text-xs text-muted-foreground font-black tracking-widest mt-1 uppercase">● RESUMO DE PERFORMANCE</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background select-none px-5">
+        <div className="text-[10px] font-black tracking-widest uppercase text-muted-foreground mb-6">
+          ● PREPARANDO {info.label.toUpperCase()}
         </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={countdown}
+            initial={{ scale: 0.4, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 1.6, opacity: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="text-[140px] font-black leading-none text-primary-light glow-primary-sm"
+          >
+            {countdown > 0 ? countdown : "AGORA!"}
+          </motion.div>
+        </AnimatePresence>
+        <button
+          onClick={() => navigate({ to: "/treino" })}
+          className="mt-10 text-[10px] font-black tracking-widest uppercase text-muted-foreground"
+        >
+          Cancelar
+        </button>
+      </div>
+    );
+  }
 
-        <div className="glass-card p-6 mt-6 animate-slide-up relative z-10">
-          <div className="grid grid-cols-2 gap-y-5 gap-x-3">
-            <Stat label="DISTÂNCIA TOTAL" value={(distance / 1000).toFixed(2)} unit="km" />
-            <Stat label="DURAÇÃO" value={fmt(seconds)} />
-            <Stat label="RITMO MÉDIO" value={paceStr} unit="/km" />
-            <Stat label="FC MÉDIA" value={String(hr)} unit="bpm" />
-            <Stat label="CALORIAS ATIVAS" value={String(calories)} unit="kcal" />
-          </div>
-        </div>
+  const km = distancia / 1000;
+  const pace = usaGPS && km > 0 ? seconds / 60 / km : 0;
+  const ritmoStr =
+    usaGPS && pace > 0 && isFinite(pace)
+      ? `${Math.floor(pace)}:${String(Math.round((pace % 1) * 60)).padStart(2, "0")}`
+      : "--:--";
+  const calorias = estimarCalorias(type, seconds);
 
-        <div className="glass-card p-5 mt-5 animate-slide-up relative z-10" style={{ animationDelay: "0.1s" }}>
-          <div className="flex items-center gap-1.5 text-xs text-primary-light font-black tracking-widest uppercase mb-2">
-            <Sparkles className="h-3.5 w-3.5" /> ANÁLISE IA SPORT
-          </div>
-          <p className="text-xs leading-relaxed font-semibold">
-            {distance / 1000 > 5
-              ? "Sessão consistente de alta qualidade. Frequência cardíaca ideal dentro das zonas de treinamento aeróbico. Excelente para ganho de resistência pulmonar e vascular."
-              : "Treino curto e focado. Perfeito para manutenção de base e dias regenerativos para recuperação muscular ativa."}
+  // Encerrado
+  if (fase === "finished") {
+    return (
+      <div className="min-h-screen px-5 pt-safe pb-10 flex flex-col select-none">
+        <div className="my-4">
+          <h1 className="text-3xl font-black tracking-tight uppercase">TREINO CONCLUÍDO</h1>
+          <p className="text-xs text-muted-foreground font-black tracking-widest mt-1 uppercase">
+            ● RESUMO DA SESSÃO
           </p>
         </div>
 
-        <div className="mt-auto space-y-3 pt-6 relative z-10">
-          <motion.button 
-            onClick={save} 
+        <div className="glass-card p-6 mt-4">
+          <div className="grid grid-cols-2 gap-y-5 gap-x-3">
+            <Stat label="MODALIDADE" value={info.label} />
+            <Stat label="DATA" value={(startedAt.current ?? new Date()).toLocaleDateString("pt-BR")} />
+            <Stat label="DURAÇÃO TOTAL" value={fmtDuracao(seconds)} />
+            <Stat label="DISTÂNCIA" value={km.toFixed(2)} unit="km" />
+            {usaGPS && <Stat label="RITMO MÉDIO" value={ritmoStr} unit="/km" />}
+            <Stat label="CALORIAS" value={String(calorias)} unit="kcal" />
+            <Stat label="FC MÉDIA" value={String(hr)} unit="bpm" />
+          </div>
+        </div>
+
+        <div className="glass-card p-5 mt-5 border border-warning/30">
+          <div className="flex items-center gap-1.5 text-xs text-warning font-black tracking-widest uppercase mb-3">
+            🏆 ANÁLISE DO COACH IA
+          </div>
+          {analiseLoading ? (
+            <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+              <Sparkles className="h-4 w-4 animate-pulse" />
+              Analisando seu desempenho...
+            </div>
+          ) : (
+            <p className="text-sm leading-relaxed font-semibold">{analise}</p>
+          )}
+        </div>
+
+        <div className="mt-auto space-y-3 pt-6">
+          <motion.button
+            onClick={salvar}
             whileTap={{ scale: 0.97 }}
-            className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-black tracking-widest text-xs cursor-pointer glow-primary-sm"
+            disabled={analiseLoading}
+            aria-label="Salvar treino"
+            className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-black tracking-widest text-xs cursor-pointer glow-primary-sm flex items-center justify-center gap-2 disabled:opacity-50"
+            style={{ minHeight: 48 }}
           >
-            SAVE WORKOUT
+            <Save className="h-4 w-4" /> SALVAR TREINO
           </motion.button>
-          
-          <motion.button 
-            onClick={() => navigate({ to: "/dashboard" })} 
+
+          <motion.button
+            onClick={treinarNovamente}
             whileTap={{ scale: 0.97 }}
-            className="w-full h-12 rounded-2xl glass-card font-black tracking-widest text-xs text-muted-foreground cursor-pointer"
+            aria-label="Treinar novamente"
+            className="w-full h-12 rounded-2xl glass-card font-black tracking-widest text-xs cursor-pointer flex items-center justify-center gap-2"
+            style={{ minHeight: 48 }}
           >
-            DISCARD
+            <RotateCcw className="h-4 w-4" /> TREINAR NOVAMENTE
           </motion.button>
         </div>
       </div>
     );
   }
 
-  // 2. ACTIVE WORKOUT SCREEN
+  // Treino ativo
   return (
-    <div className="min-h-screen flex flex-col bg-background select-none relative overflow-hidden">
-      
-      {/* Dynamic Screen Layout */}
-      <AnimatePresence mode="wait">
-        {!focusMode ? (
-          /* GPS MAP INTERFACE */
-          <motion.div 
-            key="map-view"
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "42vh" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ type: "spring", stiffness: 200, damping: 26 }}
-            className="relative overflow-hidden w-full"
-          >
-            <img src="/images/hero-running.png" alt="" className="absolute inset-0 w-full h-full object-cover opacity-35" />
-            <div className="absolute inset-0" style={{
-              background: "linear-gradient(to bottom, oklch(0.12 0.03 250 / 0.2) 0%, oklch(0.12 0.03 250 / 0.85) 60%, oklch(0.12 0.03 250 / 1) 100%)"
-            }} />
-            
-            {/* Neon glowing polyline trail */}
-            <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 400 400">
-              <defs>
-                <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feGaussianBlur stdDeviation="8" result="blur" />
-                  <feMerge>
-                    <feMergeNode in="blur" />
-                    <feMergeNode in="SourceGraphic" />
-                  </feMerge>
-                </filter>
-              </defs>
-              
-              {/* Blur backdrop for neon intensity */}
-              <path 
-                d={`M 50 350 Q 100 ${250 - seconds % 55} 180 220 T 350 70`} 
-                stroke="oklch(0.62 0.20 250)"
-                strokeWidth="10" fill="none" strokeLinecap="round"
-                opacity="0.55"
-                filter="url(#glow)"
-              />
-              
-              {/* Core bright neon path line */}
-              <path 
-                d={`M 50 350 Q 100 ${250 - seconds % 55} 180 220 T 350 70`} 
-                stroke="oklch(0.72 0.18 250)"
-                strokeWidth="4" fill="none" strokeLinecap="round"
-              />
-              
-              {/* Floating current position marker with pulse animation */}
-              <circle cx="350" cy="70" r="8" fill="var(--color-primary-light)" className="animate-pulse" />
-            </svg>
-
-            {/* GPS HUD */}
-            <div className="absolute top-safe left-5 right-5 flex justify-between items-center z-10">
-              <span className="px-3 py-1.5 rounded-full text-[10px] font-black tracking-widest flex items-center gap-1.5"
-                style={{ background: "oklch(0.12 0.03 250 / 0.85)", border: "1px solid oklch(0.45 0.10 250 / 0.2)", backdropFilter: "blur(12px)" }}>
-                <span className="h-2 w-2 rounded-full bg-danger animate-pulse" /> GRAVANDO GPS
-              </span>
-              
-              {/* Toggle to fullscreen focus mode */}
-              <button 
-                onClick={() => setFocusMode(true)}
-                className="icon-circle h-9 w-9 hover:scale-105 active:scale-95 transition"
-              >
-                <Maximize2 className="h-4.5 w-4.5 text-primary-light" />
-              </button>
-            </div>
-          </motion.div>
+    <div className="min-h-screen flex flex-col bg-background select-none relative">
+      {/* Mapa real (se GPS) ou banner */}
+      <div className="relative w-full" style={{ height: "38vh" }}>
+        {usaGPS ? (
+          <Suspense fallback={<div className="w-full h-full bg-card/50" />}>
+            <RouteMap pontos={pontos} className="w-full h-full" />
+          </Suspense>
         ) : (
-          /* FOCUS MODE HUD */
-          <motion.div 
-            key="focus-view"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="pt-safe px-5 flex justify-between items-center relative z-20"
-          >
-            <span className="text-[10px] font-black tracking-widest text-primary-light flex items-center gap-1.5">
-              ⚡ LIVE WORKOUT (MODO DE CONCENTRAÇÃO)
-            </span>
-            <button 
-              onClick={() => setFocusMode(false)}
-              className="icon-circle h-9 w-9 hover:scale-105 active:scale-95 transition"
-            >
-              <Minimize2 className="h-4.5 w-4.5 text-primary-light" />
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* 4 CORE METRICS */}
-      <div className="flex-1 px-5 py-6 flex flex-col justify-between relative z-10">
-        <div className={`grid grid-cols-2 gap-4 ${focusMode ? "my-auto py-8" : ""}`}>
-          <BigStat 
-            label="DISTÂNCIA" 
-            value={(distance / 1000).toFixed(2)} 
-            unit="km" 
-            live 
-          />
-          <BigStat 
-            label="RITMO CORRENTE" 
-            value={paceStr} 
-            unit="/km" 
-            live 
-          />
-          <BigStat 
-            label="FREQUÊNCIA CARDÍACA" 
-            value={String(hr)} 
-            unit="bpm" 
-            live 
-          />
-          <BigStat 
-            label="TEMPO DE ATIVIDADE" 
-            value={fmt(seconds)} 
-            live 
-          />
-        </div>
-
-        {seconds > 15 && seconds < 32 && !focusMode && (
-          <div className="mt-4 p-3 rounded-xl bg-primary/10 border border-primary/30 text-[10px] font-black tracking-widest uppercase text-primary-light text-center animate-fade-in">
-            ⚡ EXCELENTE RITMO! MANTENHA A CADÊNCIA
+          <div className="w-full h-full bg-card/50 flex items-center justify-center">
+            <img src={info.icon} alt="" className="h-20 w-20 opacity-40" />
           </div>
         )}
 
-        {/* WORKOUT CONTROLS */}
+        <div className="absolute top-safe left-5 right-5 flex justify-between items-center z-[400]">
+          <span
+            className="px-3 py-1.5 rounded-full text-[10px] font-black tracking-widest flex items-center gap-1.5"
+            style={{
+              background: "oklch(0.12 0.03 250 / 0.85)",
+              border: "1px solid oklch(0.45 0.10 250 / 0.2)",
+              backdropFilter: "blur(12px)",
+            }}
+          >
+            <span className="h-2 w-2 rounded-full bg-danger animate-pulse" />
+            {usaGPS ? "GRAVANDO GPS" : "EM ATIVIDADE"}
+          </span>
+        </div>
+      </div>
+
+      {gpsErro && usaGPS && (
+        <div className="mx-5 mt-3 p-3 rounded-xl bg-warning/10 border border-warning/30 text-xs text-warning font-semibold">
+          {gpsErro}
+        </div>
+      )}
+
+      <div className="flex-1 px-5 py-6 flex flex-col">
+        <div className="grid grid-cols-2 gap-4">
+          <BigStat
+            label="TEMPO"
+            value={fmtDuracao(seconds)}
+            timerRole
+          />
+          <BigStat
+            label="DISTÂNCIA"
+            value={usaGPS ? km.toFixed(2) : "--"}
+            unit="km"
+          />
+          <BigStat
+            label="RITMO"
+            value={usaGPS ? ritmoStr : "--:--"}
+            unit="/km"
+          />
+          <BigStat label="CALORIAS" value={String(calorias)} unit="kcal" />
+        </div>
+
         <div className="mt-auto flex gap-3 pt-6">
-          <motion.button 
+          <motion.button
             onClick={() => setRunning((r) => !r)}
             whileTap={{ scale: 0.96 }}
-            style={{ willChange: "transform" }}
+            aria-label={running ? "Pausar treino" : "Retomar treino"}
             className="flex-1 h-16 rounded-2xl glass-card font-black tracking-widest text-xs flex items-center justify-center gap-2 cursor-pointer"
+            style={{ minHeight: 48 }}
           >
             {running ? (
-              <><Pause className="h-5 w-5 text-primary-light" /> PAUSE</>
+              <>
+                <Pause className="h-5 w-5 text-primary-light" /> PAUSAR
+              </>
             ) : (
-              <><Play className="h-5 w-5 text-primary-light" /> RESUME</>
+              <>
+                <Play className="h-5 w-5 text-primary-light" /> RETOMAR
+              </>
             )}
           </motion.button>
-          
-          <motion.button 
-            onClick={() => setFinished(true)}
+
+          <motion.button
+            onClick={encerrar}
             whileTap={{ scale: 0.96 }}
-            style={{ willChange: "transform" }}
+            aria-label="Encerrar treino"
             className="flex-1 h-16 rounded-2xl bg-danger text-white font-black tracking-widest text-xs flex items-center justify-center gap-2 cursor-pointer"
+            style={{ minHeight: 48 }}
           >
-            <Square className="h-5 w-5 fill-current" /> STOP
+            <Square className="h-5 w-5 fill-current" /> ENCERRAR
           </motion.button>
         </div>
       </div>
@@ -285,25 +380,40 @@ function TreinoAtivo() {
 function Stat({ label, value, unit }: { label: string; value: string; unit?: string }) {
   return (
     <div className="border-b border-border/10 pb-2 last:border-0">
-      <div className="text-[9px] text-muted-foreground font-black tracking-widest uppercase">{label}</div>
+      <div className="text-[9px] text-muted-foreground font-black tracking-widest uppercase">
+        {label}
+      </div>
       <div className="text-xl font-black font-mono mt-1 text-primary-light">
         {value}
-        {unit && <span className="text-xs text-muted-foreground font-bold ml-1 uppercase">{unit}</span>}
+        {unit && (
+          <span className="text-xs text-muted-foreground font-bold ml-1 uppercase">{unit}</span>
+        )}
       </div>
     </div>
   );
 }
 
-function BigStat({ label, value, unit, live }: { label: string; value: string; unit?: string; live?: boolean }) {
+function BigStat({
+  label,
+  value,
+  unit,
+  timerRole,
+}: {
+  label: string;
+  value: string;
+  unit?: string;
+  timerRole?: boolean;
+}) {
   return (
-    /* Breathing border applied dynamically to highlight active state during workout */
-    <div className="glass-card p-5 breathing-border select-none relative overflow-hidden" style={{ willChange: "transform" }}>
-      <div className="text-[9px] text-muted-foreground font-black tracking-widest uppercase mb-1">{label}</div>
-      
-      <div className={`mt-2 flex items-baseline gap-1 ${live ? "live-flash" : ""}`}>
-        <span className="text-3xl font-black font-mono leading-none tracking-tight">
-          {value}
-        </span>
+    <div
+      className="glass-card p-5 select-none relative overflow-hidden"
+      {...(timerRole ? { role: "timer", "aria-live": "polite" as const } : {})}
+    >
+      <div className="text-[9px] text-muted-foreground font-black tracking-widest uppercase mb-1">
+        {label}
+      </div>
+      <div className="mt-2 flex items-baseline gap-1">
+        <span className="text-3xl font-black font-mono leading-none tracking-tight">{value}</span>
         {unit && (
           <span className="text-xs font-black text-muted-foreground uppercase">{unit}</span>
         )}
