@@ -1,294 +1,243 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/lib/auth";
-import { supabase } from "@/integrations/supabase/client";
-import { HeroHeader } from "@/components/HeroHeader";
-import { RecoveryRing } from "@/components/RecoveryRing";
+import type React from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Counter } from "@/components/Counter";
+import { HeroHeader } from "@/components/HeroHeader";
 import { InstallPwaCard } from "@/components/InstallPwaCard";
-import { computeRecoveryScore, generateDailyInsights, getMockWeather, greetingByHour } from "@/lib/ai-insights";
-import { Cloud, CloudRain, Sun, Wind, Droplets, Flame, Play, Sparkles, TrendingUp, ChevronRight, Bell } from "lucide-react";
+import { gerarTextoAnthropic } from "@/lib/anthropic-client";
+import {
+  calcularStreak,
+  dataISO,
+  kmTreino,
+  lerPerfil,
+  lerRecuperacao,
+  obterClimaAtual,
+  treinosDaSemana,
+  ultimoTreino,
+  type ClimaAtual,
+} from "@/lib/pulse-data";
+import { listarTreinos } from "@/lib/treino-history";
+import { Bell, ChevronRight, Flame, Moon, Play, Sparkles, Sun, TrendingUp } from "lucide-react";
 import { motion } from "framer-motion";
 
 export const Route = createFileRoute("/_app/dashboard")({ component: Dashboard });
 
 function Dashboard() {
-  const { user, isAuthenticated } = useAuth();
+  const [briefing, setBriefing] = useState("Carregando seu briefing do dia...");
+  const [clima, setClima] = useState<ClimaAtual | null>(null);
+  const treinos = useMemo(() => listarTreinos(), []);
+  const perfil = useMemo(() => lerPerfil(), []);
+  const recuperacao = useMemo(() => lerRecuperacao().at(-1), []);
+  const semanal = useMemo(() => treinosDaSemana(treinos), [treinos]);
+  const streak = useMemo(() => calcularStreak(treinos), [treinos]);
+  const metaKm = perfil.metaSemanalKm || 20;
+  const kmSemana = Number(semanal.reduce((sum, treino) => sum + kmTreino(treino), 0).toFixed(1));
+  const progresso = Math.min(100, (kmSemana / metaKm) * 100);
+  const totalMin = Math.round(semanal.reduce((sum, treino) => sum + treino.duracaoSeg, 0) / 60);
+  const totalCal = semanal.reduce((sum, treino) => sum + treino.caloriasKcal, 0);
+  const hour = new Date().getHours();
+  const PeriodIcon = hour >= 6 && hour < 18 ? Sun : Moon;
+  const firstName = (perfil.nome || "Atleta").split(" ")[0];
 
-  const { data: profile } = useQuery({
-    queryKey: ["profile", user?.id],
-    enabled: isAuthenticated,
-    queryFn: async () => {
-      const { data } = await supabase.from("profiles").select("*").eq("id", user!.id).maybeSingle();
-      return data;
-    },
-  });
-
-  const { data: todayHealth } = useQuery({
-    queryKey: ["health", "today", user?.id],
-    enabled: isAuthenticated,
-    queryFn: async () => {
-      const today = new Date().toISOString().slice(0, 10);
-      const { data } = await supabase.from("health_metrics").select("*").eq("user_id", user!.id).eq("date", today).maybeSingle();
-      return data;
-    },
-  });
-
-  const { data: weekActivities } = useQuery({
-    queryKey: ["activities", "week", user?.id],
-    enabled: isAuthenticated,
-    queryFn: async () => {
-      const since = new Date(); since.setDate(since.getDate() - 6);
-      const { data } = await supabase.from("activities").select("*").eq("user_id", user!.id).gte("started_at", since.toISOString()).order("started_at", { ascending: true });
-      return data ?? [];
-    },
-  });
-
-  const weather = getMockWeather();
-  const recovery = todayHealth?.recovery_score ?? computeRecoveryScore(todayHealth ?? {});
-  const insights = generateDailyInsights({ health: todayHealth ?? {}, weather, recovery });
-
-  const firstName = (profile?.full_name ?? user.user_metadata?.full_name ?? "Atleta").split(" ")[0];
-  const greeting = `${greetingByHour()}, ${firstName}!`.toUpperCase();
-
-  // Weekly aggregates
-  const totalKm = Number(((weekActivities ?? []).reduce((s, a) => s + Number(a.distance_meters ?? 0), 0) / 1000).toFixed(1));
-  const totalMin = Math.round((weekActivities ?? []).reduce((s, a) => s + Number(a.duration_seconds ?? 0), 0) / 60);
-  const totalCal = (weekActivities ?? []).reduce((s, a) => s + (a.calories_burned ?? 0), 0);
-
-  // Weekly bar data
-  const days = ["D", "S", "T", "Q", "Q", "S", "S"];
-  const todayDate = new Date();
-  const dayData = Array.from({ length: 7 }).map((_, i) => {
-    const d = new Date(todayDate); d.setDate(todayDate.getDate() - (6 - i));
-    const key = d.toISOString().slice(0, 10);
-    const km = ((weekActivities ?? []).filter((a) => a.started_at.slice(0, 10) === key)
-      .reduce((s, a) => s + Number(a.distance_meters ?? 0), 0)) / 1000;
-    return { day: days[d.getDay()], km, isToday: i === 6 };
-  });
-  const maxKm = Math.max(1, ...dayData.map((d) => d.km));
-
-  const WeatherIcon = weather.condition.toLowerCase().includes("chuv") ? CloudRain
-    : weather.condition.toLowerCase().includes("nubl") ? Cloud : Sun;
-
-  // Staggered layout animation config
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.08,
+  useEffect(() => {
+    let cancelled = false;
+    async function carregarBriefing() {
+      try {
+        const climaAtual = await obterClimaAtual();
+        if (cancelled) return;
+        setClima(climaAtual);
+        const ultimo = ultimoTreino();
+        const fallback = montarBriefingFallback(
+          ultimo?.modalidade,
+          recuperacao?.score,
+          climaAtual.temp,
+        );
+        const texto = await gerarTextoAnthropic({
+          system:
+            "Você é um coach esportivo brasileiro. Com base nos dados do atleta (último treino, score de recuperação, clima atual), gere um briefing diário motivacional em 2-3 linhas curtas. Seja direto, humano e nunca genérico. Responda sempre em português.",
+          prompt: JSON.stringify({ ultimoTreino: ultimo, recuperacao, clima: climaAtual }),
+          fallback,
+          storageKey: `briefing-${dataISO(new Date())}`,
+        });
+        if (!cancelled) setBriefing(texto);
+      } catch {
+        if (!cancelled)
+          setBriefing(
+            "Hoje pede inteligência: aqueça bem, respeite seu corpo e transforme constância em evolução.",
+          );
       }
     }
-  };
+    carregarBriefing();
+    return () => {
+      cancelled = true;
+    };
+  }, [recuperacao]);
 
-  const cardVariants = {
-    hidden: { opacity: 0, y: 24 },
-    show: { 
-      opacity: 1, 
-      y: 0, 
-      transition: { type: "spring" as const, stiffness: 300, damping: 24 } 
-    }
-  };
+  const semana = useMemo(() => {
+    const inicio = new Date();
+    const diff = inicio.getDay() === 0 ? -6 : 1 - inicio.getDay();
+    inicio.setDate(inicio.getDate() + diff);
+    inicio.setHours(0, 0, 0, 0);
+    return ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map((label, index) => {
+      const date = new Date(inicio);
+      date.setDate(inicio.getDate() + index);
+      const key = dataISO(date);
+      const treinado = treinos.some((treino) => dataISO(new Date(treino.data)) === key);
+      const hoje = key === dataISO(new Date());
+      return {
+        label,
+        treinado,
+        hoje,
+        planejado: !treinado && date > new Date() && index % 2 === 0,
+      };
+    });
+  }, [treinos]);
 
   return (
     <div>
-      {/* Hero Header with athletic reception layout (Uppercase left aligned + notification right aligned) */}
       <HeroHeader
         image="running"
-        title={greeting}
-        subtitle="VAMOS SUPERAR LIMITES HOJE?"
+        title={`BOM TREINO, ${firstName}`.toUpperCase()}
+        subtitle="INÍCIO INTELIGENTE DO SEU DIA"
         right={
-          <button className="icon-circle h-11 w-11 hover:scale-105 active:scale-95 transition relative">
+          <button
+            aria-label="Abrir notificações"
+            className="icon-circle h-12 w-12 hover:scale-105 active:scale-95 transition relative"
+          >
             <Bell className="h-5 w-5 text-primary-light" />
             <span className="absolute top-2 right-2 h-2.5 w-2.5 rounded-full bg-primary-light glow-primary-sm" />
           </button>
         }
       />
 
-      {/* Staggered Cards container */}
-      <motion.div 
+      <motion.div
         className="px-5 space-y-4 pb-28 -mt-4 relative z-10"
-        variants={containerVariants}
         initial="hidden"
         animate="show"
+        variants={containerVariants}
       >
-        {/* IA Recovery Card */}
-        {/* TODO: trigger AuthModal for premium feature */}
-        <motion.div 
-          className="glass-card p-5 cursor-pointer select-none"
-          variants={cardVariants}
-          whileTap={{ scale: 0.97 }}
-          style={{ willChange: "transform" }}
-        >
+        <Card>
           <div className="flex items-start gap-4">
-            <RecoveryRing score={recovery} />
-            <div className="flex-1">
-              <div className="flex items-center gap-1.5 text-xs text-primary-light font-bold mb-1 tracking-wider">
-                <Sparkles className="h-3.5 w-3.5" /> IA SPORTS COACH
+            <div className="icon-circle h-12 w-12 glow-primary-sm shrink-0">
+              <PeriodIcon className="h-6 w-6 text-primary-light" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5 text-xs text-primary-light font-black tracking-widest mb-2 uppercase">
+                <Sparkles className="h-3.5 w-3.5" /> Briefing diário com IA
               </div>
-              <p className="text-sm font-bold leading-snug">{insights.headline.toUpperCase()}</p>
-              <p className="text-xs text-muted-foreground mt-2 leading-relaxed font-medium">{insights.recommendation}</p>
+              <p className="text-sm font-bold leading-relaxed whitespace-pre-line">{briefing}</p>
             </div>
           </div>
-          {insights.alerts.length > 0 && (
-            <div className="mt-4 p-3 rounded-xl bg-warning/10 border border-warning/30 text-xs text-warning font-semibold">
-              ⚠️ {insights.alerts[0]}
-            </div>
-          )}
-        </motion.div>
+        </Card>
 
-        {/* Clima Card */}
-        <motion.div 
-          className="glass-card p-5 cursor-pointer select-none"
-          variants={cardVariants}
-          whileTap={{ scale: 0.97 }}
-          style={{ willChange: "transform" }}
-        >
-          <div className="athletic-label tracking-widest text-[10px]">● CLIMA AGORA</div>
-          
-          <div className="flex items-end justify-between mt-2">
-            <div className="flex items-baseline gap-1">
-              <span className="scoreboard-value">
-                <Counter to={weather.temp} />
-              </span>
-              <span className="text-xl font-black text-muted-foreground">°C</span>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-black text-muted-foreground tracking-wider uppercase">{weather.condition}</span>
-              <div className="icon-circle h-10 w-10 glow-primary-sm">
-                <WeatherIcon className="h-5 w-5 text-primary-light" />
-              </div>
-            </div>
-          </div>
+        {clima && clima.temp > 30 && clima.humidity > 70 && (
+          <Card className="border-warning/40 bg-warning/10">
+            <p className="text-xs font-black leading-relaxed text-warning">
+              ⚠️ Calor extremo hoje — {clima.temp}°C com {clima.humidity}% de umidade. Prefira
+              treinar antes das 9h ou após as 17h.
+            </p>
+          </Card>
+        )}
 
-          <div className="flex gap-5 mt-4 text-xs font-bold text-muted-foreground border-t border-border/20 pt-3">
-            <span className="flex items-center gap-1.5"><Droplets className="h-4 w-4 text-primary-light" /> {weather.humidity}% UMIDADE</span>
-            <span className="flex items-center gap-1.5"><Wind className="h-4 w-4 text-primary-light" /> 12 KM/H VENTO</span>
-          </div>
-        </motion.div>
-
-        {/* Weekly summary with scoreboard numeric styles */}
-        <motion.div 
-          className="glass-card p-5 cursor-pointer select-none"
-          variants={cardVariants}
-          whileTap={{ scale: 0.97 }}
-          style={{ willChange: "transform" }}
-        >
+        <Card>
           <div className="flex items-center justify-between mb-4">
-            <div className="athletic-label tracking-widest text-[10px]">● VOLUME SEMANAL</div>
-            {/* Shaking Streak indicator */}
-            <motion.div 
-              className="text-[10px] font-black text-primary-light tracking-widest bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full"
-              animate={{ rotate: [-2, 2, -2, 2, 0] }}
-              transition={{ delay: 0.6, duration: 0.4 }}
-            >
-              🔥 ATLETA ATIVO
-            </motion.div>
-          </div>
-
-          {/* Metrics scoreboards */}
-          <div className="grid grid-cols-3 gap-4 mb-5 border-b border-border/20 pb-4">
-            <div>
-              <div className="text-[10px] text-muted-foreground font-black tracking-widest uppercase mb-1">DISTÂNCIA</div>
-              <div className="scoreboard-value text-2xl flex items-baseline">
-                <Counter to={totalKm} decimals={1} />
-                <span className="scoreboard-unit">km</span>
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] text-muted-foreground font-black tracking-widest uppercase mb-1">TEMPO</div>
-              <div className="scoreboard-value text-2xl flex items-baseline">
-                <Counter to={totalMin} />
-                <span className="scoreboard-unit">min</span>
-              </div>
-            </div>
-            <div>
-              <div className="text-[10px] text-muted-foreground font-black tracking-widest uppercase mb-1">CALORIAS</div>
-              <div className="scoreboard-value text-2xl flex items-baseline">
-                <Counter to={totalCal} />
-                <span className="scoreboard-unit">kcal</span>
-              </div>
+            <div className="athletic-label tracking-widest text-[10px]">Semana visual</div>
+            <div className="text-[10px] font-black text-primary-light tracking-widest">
+              {kmSemana} / {metaKm} km
             </div>
           </div>
-
-          {/* Staggered progress bars for weekly column */}
-          <div className="flex items-end gap-2 h-16">
-            {dayData.map((d, i) => (
-              <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
-                <div className="w-full rounded-md overflow-hidden flex-1 flex items-end" style={{ background: "oklch(0.22 0.04 250)" }}>
-                  <motion.div 
-                    className="w-full rounded-md"
-                    initial={{ height: 0 }}
-                    animate={{ height: `${(d.km / maxKm) * 100}%` }}
-                    transition={{ type: "spring" as const, stiffness: 100, delay: 0.3 + i * 0.05 }}
-                    style={{
-                      background: d.isToday
-                        ? "linear-gradient(to top, var(--color-primary), var(--color-primary-light))"
-                        : "oklch(0.45 0.12 250 / 0.5)",
-                      boxShadow: d.isToday ? "0 0 12px oklch(0.72 0.18 250 / 0.4)" : "none"
-                    }} 
-                  />
+          <div className="grid grid-cols-7 gap-2">
+            {semana.map((dia) => (
+              <div key={dia.label} className="flex flex-col items-center gap-2">
+                <div
+                  className={[
+                    "h-10 w-10 rounded-full grid place-items-center text-[10px] font-black transition",
+                    dia.treinado
+                      ? "bg-emerald-400 text-background shadow-[0_0_18px_rgba(52,211,153,0.55)]"
+                      : "",
+                    dia.planejado ? "border border-primary-light text-primary-light" : "",
+                    !dia.treinado && !dia.planejado ? "bg-muted/30 text-muted-foreground" : "",
+                    dia.hoje
+                      ? "ring-2 ring-primary-light ring-offset-2 ring-offset-background"
+                      : "",
+                  ].join(" ")}
+                >
+                  {dia.label.slice(0, 1)}
                 </div>
-                <span className={`text-[10px] font-black ${d.isToday ? "text-primary-light" : "text-muted-foreground"}`}>{d.day}</span>
+                <span className="text-[9px] font-black uppercase text-muted-foreground">
+                  {dia.label}
+                </span>
               </div>
             ))}
           </div>
-        </motion.div>
-
-        {/* Plan de Hoje - START WORKOUT pulsing button */}
-        <motion.div 
-          className="glass-card p-5 cursor-pointer select-none"
-          variants={cardVariants}
-          whileTap={{ scale: 0.97 }}
-          style={{ willChange: "transform" }}
-        >
-          <div className="athletic-label tracking-widest text-[10px]">● TREINO RECOMENDADO</div>
-          <h3 className="text-xl font-black mt-2 tracking-tight">{insights.recommendation.split(":")[0] || "TREINO CARDIO"}</h3>
-          <p className="text-xs text-muted-foreground mt-2 leading-relaxed font-semibold">{insights.recommendation}</p>
-          
-          <div className="flex gap-4 mt-4 border-t border-border/10 pt-3 text-[10px] font-black text-muted-foreground">
-            <span className="flex items-center gap-1.5"><Flame className="h-4 w-4 text-primary-light" /> ~280 KCAL</span>
-            <span className="flex items-center gap-1.5">⏱️ ~35 MINUTOS</span>
+          <div className="progress-bar mt-5" aria-label="Progresso da meta semanal">
+            <motion.div
+              className="progress-bar__fill"
+              initial={{ width: 0 }}
+              animate={{ width: `${progresso}%` }}
+            />
           </div>
+          <p className="mt-3 text-xs text-muted-foreground font-bold">
+            {kmSemana} / {metaKm} km esta semana
+          </p>
+        </Card>
 
-          <Link to="/treino" className="block mt-5">
-            {/* Pulsing Start button */}
-            <motion.div 
-              className="h-12 w-full rounded-2xl bg-primary text-primary-foreground font-black tracking-widest text-xs flex items-center justify-center gap-2"
-              animate={{
-                scale: [1, 1.04, 1],
-                boxShadow: [
-                  "0 0 12px oklch(0.62 0.20 250 / 0.4)",
-                  "0 0 24px oklch(0.62 0.20 250 / 0.6)",
-                  "0 0 12px oklch(0.62 0.20 250 / 0.4)"
-                ]
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
+        <Card>
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="athletic-label tracking-widest text-[10px]">Sequência ativa</div>
+              <p className="text-sm font-black">
+                {streak === 0 ? "Comece hoje sua sequência 🔥" : `${streak} dias consecutivos`}
+              </p>
+            </div>
+            <motion.div
+              animate={streak >= 7 ? { scale: [1, 1.12, 1] } : undefined}
+              transition={{ repeat: Infinity, duration: 1.2 }}
+              className="icon-circle h-14 w-14 glow-primary-sm"
             >
-              <Play className="h-4 w-4 fill-current" /> START WORKOUT
+              <Flame className="h-7 w-7 text-primary-light" />
             </motion.div>
-          </Link>
-        </motion.div>
+          </div>
+        </Card>
 
-        {/* Check-in Diário */}
-        <motion.div 
-          className="w-full"
-          variants={cardVariants}
-        >
-          <Link to="/saude" className="glass-card p-4 flex items-center justify-between active:scale-[0.98] transition block">
+        <Card>
+          <div className="athletic-label tracking-widest text-[10px]">Volume semanal</div>
+          <div className="grid grid-cols-3 gap-4">
+            <Metric label="Distância" value={kmSemana} unit="km" decimals={1} />
+            <Metric label="Tempo" value={totalMin} unit="min" />
+            <Metric label="Calorias" value={totalCal} unit="kcal" />
+          </div>
+        </Card>
+
+        <Card>
+          <div className="athletic-label tracking-widest text-[10px]">Treino recomendado</div>
+          <p className="text-xs text-muted-foreground leading-relaxed font-semibold">
+            Use o briefing de hoje para escolher intensidade e duração. O melhor treino é o que você
+            consegue repetir com qualidade.
+          </p>
+          <Link
+            to="/treino"
+            className="mt-5 h-12 w-full rounded-2xl bg-primary text-primary-foreground font-black tracking-widest text-xs flex items-center justify-center gap-2 active:scale-[0.97] transition"
+            aria-label="Iniciar treino"
+          >
+            <Play className="h-4 w-4 fill-current" /> INICIAR TREINO
+          </Link>
+        </Card>
+
+        <motion.div variants={cardVariants}>
+          <Link
+            to="/saude"
+            className="glass-card p-4 flex items-center justify-between active:scale-[0.98] transition block"
+          >
             <div className="flex items-center gap-3">
               <div className="icon-circle h-10 w-10 glow-primary-sm">
                 <TrendingUp className="h-5 w-5 text-primary-light" />
               </div>
               <div>
-                <div className="font-black text-sm tracking-wide">MY PROGRESS & HEALTH</div>
-                <div className="text-xs text-muted-foreground font-semibold mt-0.5">FAZER CHECK-IN DE RECUPERAÇÃO</div>
+                <div className="font-black text-sm tracking-wide">PROGRESSO E SAÚDE</div>
+                <div className="text-xs text-muted-foreground font-semibold mt-0.5">
+                  FAZER CHECK-IN DE RECUPERAÇÃO
+                </div>
               </div>
             </div>
             <ChevronRight className="h-5 w-5 text-muted-foreground" />
@@ -299,6 +248,60 @@ function Dashboard() {
           <InstallPwaCard />
         </motion.div>
       </motion.div>
+    </div>
+  );
+}
+
+function montarBriefingFallback(modalidade?: string, score = 70, temp = 24) {
+  if (score < 50)
+    return `Seu corpo está pedindo controle hoje.\nFaça mobilidade ou treino leve, especialmente com ${temp}°C lá fora.`;
+  if (modalidade)
+    return `Você vem de um treino de ${modalidade}.\nHoje é dia de somar consistência: comece leve e aumente só se o corpo responder bem.`;
+  return `Bom dia para construir base.\nFaça um treino confortável e termine com vontade de voltar amanhã.`;
+}
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
+};
+const cardVariants = {
+  hidden: { opacity: 0, y: 24 },
+  show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } },
+};
+
+function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <motion.div
+      className={`glass-card p-5 select-none animate-fade-in ${className}`}
+      variants={cardVariants}
+      whileTap={{ scale: 0.97 }}
+      style={{ willChange: "transform" }}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function Metric({
+  label,
+  value,
+  unit,
+  decimals = 0,
+}: {
+  label: string;
+  value: number;
+  unit: string;
+  decimals?: number;
+}) {
+  return (
+    <div>
+      <div className="text-[10px] text-muted-foreground font-black tracking-widest uppercase mb-1">
+        {label}
+      </div>
+      <div className="scoreboard-value text-2xl flex items-baseline">
+        <Counter to={value} decimals={decimals} />
+        <span className="scoreboard-unit">{unit}</span>
+      </div>
     </div>
   );
 }
