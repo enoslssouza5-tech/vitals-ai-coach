@@ -2,7 +2,7 @@
   "name": "Pulse — Treino Inteligente",
   "short_name": "Pulse",
   "description": "Seu coach pessoal. Treine, recupere e evolua.",
-  "start_url": "/dashboard",
+  "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0A0A0A",
