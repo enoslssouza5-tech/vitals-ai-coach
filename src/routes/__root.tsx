@@ -10,6 +10,7 @@ import {
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/lib/auth";
 import { AuthModal } from "@/components/AuthModal";
+import { PwaInstallOverlay } from "@/components/PwaInstallOverlay";
 import { PwaRegister } from "@/components/PwaRegister";
 
 import appCss from "../styles.css?url";
@@ -136,6 +137,7 @@ function RootComponent() {
         <div className="pulse-mobile-shell mx-auto min-h-screen w-full overflow-x-hidden bg-background">
           <Outlet />
         </div>
+        <PwaInstallOverlay />
         <AuthModal />
         <Toaster theme="dark" position="bottom-right" duration={3000} />
       </AuthProvider>

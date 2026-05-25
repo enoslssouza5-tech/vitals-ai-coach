@@ -1,12 +1,12 @@
 {
-  "name": "Pulse",
+  "name": "Pulse — Treino Inteligente",
   "short_name": "Pulse",
-  "theme_color": "#0B1023",
-  "background_color": "#0A0A0A",
+  "description": "Seu coach pessoal. Treine, recupere e evolua.",
+  "start_url": "/dashboard",
   "display": "standalone",
   "orientation": "portrait",
-  "start_url": "/",
-  "scope": "/",
+  "background_color": "#0A0A0A",
+  "theme_color": "#0A0A0A",
   "icons": [
     {
       "src": "/icons/icon-192.png",

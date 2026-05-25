@@ -327,6 +327,237 @@
   .pb-safe {
     padding-bottom: max(env(safe-area-inset-bottom), 1rem);
   }
+
+  .pwa-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    width: 100%;
+    max-width: 390px;
+    min-height: 100dvh;
+    margin: 0 auto;
+    align-items: center;
+    justify-content: center;
+    overflow-x: hidden;
+    overflow-y: auto;
+    background: #0a0a0a;
+    padding: 32px 24px;
+    animation: slideUp 0.4s ease forwards;
+  }
+
+  .pwa-install-panel {
+    display: flex;
+    width: 100%;
+    max-width: 342px;
+    flex-direction: column;
+    align-items: center;
+    color: #ffffff;
+    text-align: center;
+  }
+
+  .pwa-logo-wrap {
+    display: flex;
+    width: 80px;
+    height: 80px;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 24px;
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .pwa-logo {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+  }
+
+  .pwa-install-title {
+    margin-top: 24px;
+    max-width: 300px;
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.25;
+    letter-spacing: -0.3px;
+  }
+
+  .pwa-install-subtitle {
+    margin-top: 12px;
+    color: #888888;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .pwa-install-divider {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 12px;
+    margin-top: 28px;
+    color: #555555;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .pwa-install-divider::before,
+  .pwa-install-divider::after {
+    content: "";
+    height: 1px;
+    flex: 1;
+    background: rgba(255, 255, 255, 0.06);
+  }
+
+  .pwa-guide-title {
+    margin-top: 16px;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: left;
+  }
+
+  .install-steps {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    gap: 16px;
+    margin: 24px 0;
+  }
+
+  .install-step {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 14px;
+    opacity: 0;
+    text-align: left;
+    animation: slideUp 0.4s ease forwards;
+  }
+
+  .install-step:nth-child(1) {
+    animation-delay: 0.2s;
+  }
+
+  .install-step:nth-child(2) {
+    animation-delay: 0.35s;
+  }
+
+  .install-step:nth-child(3) {
+    animation-delay: 0.5s;
+  }
+
+  .step-number {
+    display: flex;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #c8ff00;
+    border-radius: 50%;
+    background: #1a1a1a;
+    color: #c8ff00;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .step-content {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .step-title {
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .step-detail {
+    color: #888888;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .step-highlight {
+    color: #c8ff00;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .pwa-desktop-qr {
+    display: flex;
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    margin: 24px 0;
+    color: #888888;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .pwa-qr-image {
+    width: 148px;
+    height: 148px;
+    border-radius: 16px;
+    border: 8px solid #ffffff;
+    background: #ffffff;
+  }
+
+  .pwa-copy-link,
+  .pwa-native-prompt-card {
+    display: flex;
+    width: 100%;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 12px;
+    background: #1a1a1a;
+    padding: 10px 12px;
+    color: #888888;
+    font-size: 12px;
+  }
+
+  .pwa-copy-link span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .pwa-primary-button {
+    display: inline-flex;
+    width: 100%;
+    height: 56px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 16px;
+    background: #c8ff00;
+    color: #000000;
+    font-size: 16px;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .pwa-dismiss-button {
+    min-height: 44px;
+    margin-top: 8px;
+    padding: 16px;
+    color: #555555;
+    font-size: 13px;
+    text-decoration: underline;
+  }
 }
 
 @keyframes fade-in {
@@ -342,4 +573,15 @@
 
 .animate-fade-in {
   animation: fade-in 0.24s ease-out both;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
