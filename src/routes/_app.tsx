@@ -5,7 +5,7 @@ export const Route = createFileRoute("/_app")({ component: AppLayout });
 
 function AppLayout() {
   return (
-    <div className="mx-auto min-h-screen w-full max-w-[430px] pb-28">
+    <div className="mx-auto min-h-screen w-full max-w-[390px] pb-28">
       <Outlet />
       <BottomNav />
     </div>

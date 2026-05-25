@@ -14,7 +14,7 @@ export function BottomNav() {
   const { pathname } = useLocation();
 
   return (
-    <nav className="fixed bottom-0 left-1/2 z-40 h-[calc(60px+env(safe-area-inset-bottom))] w-full max-w-[430px] -translate-x-1/2 overflow-hidden border-t border-white/[0.06] bg-[#0A0A0A] pb-safe">
+    <nav className="tab-bar">
       <div className="mx-auto grid h-[60px] w-full max-w-full grid-cols-5 items-center px-0">
         {items.slice(0, 2).map(({ to, icon: Icon, label, match }) => {
           const active = (match ?? [to]).some((path) => pathname.startsWith(path));

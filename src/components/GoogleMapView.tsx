@@ -288,7 +288,7 @@ function FallbackRoute({ paths }: { paths: LatLngTuple[][] }) {
       </svg>
       {!path.length && (
         <div className="absolute inset-0 grid place-items-center">
-          <MapPin className="h-8 w-8 text-[#C8FF00]" strokeWidth={1.7} />
+          <MapPin className="h-8 w-8 text-[#333333]" strokeWidth={1.7} />
         </div>
       )}
     </div>

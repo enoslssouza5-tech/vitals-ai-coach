@@ -116,30 +116,26 @@ function Social() {
   };
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-[430px] overflow-x-hidden bg-[#0A0A0A] px-4 pt-[52px] pb-[96px] text-white">
-      <header className="mb-7 flex min-w-0 items-center justify-between gap-3">
-        <h1 className="min-w-0 text-[clamp(30px,8vw,40px)] font-black tracking-[-0.04em]">
-          Social
-        </h1>
+    <main className="screen-container bg-[#0A0A0A] pt-safe text-white">
+      <header className="flex min-w-0 items-center justify-between gap-3 pt-4 pb-4">
+        <h1 className="min-w-0 text-2xl font-bold tracking-[-0.3px]">Comunidade</h1>
         <div className="flex shrink-0 items-center gap-3">
           <button className="grid h-11 w-11 place-items-center" aria-label="Adicionar amigo">
-            <UserPlus className="h-8 w-8" strokeWidth={1.8} />
+            <UserPlus className="h-[22px] w-[22px] text-[#888888]" strokeWidth={1.8} />
           </button>
           <button className="relative grid h-11 w-11 place-items-center" aria-label="Notificações">
-            <Bell className="h-8 w-8" strokeWidth={1.8} />
+            <Bell className="h-[22px] w-[22px] text-[#888888]" strokeWidth={1.8} />
             <span className="absolute right-1.5 top-1.5 h-3 w-3 rounded-full bg-[#C8FF00]" />
           </button>
         </div>
       </header>
 
-      <nav className="mb-4 grid grid-cols-3 border-b border-white/[0.06]">
+      <nav className="inner-tabs">
         {["Feed", "Seguindo", "Clubes"].map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`min-w-0 truncate pb-4 text-center text-[clamp(18px,5vw,24px)] font-medium first:text-left last:text-right ${
-              activeTab === tab ? "border-b-2 border-[#C8FF00] text-[#C8FF00]" : "text-[#888888]"
-            }`}
+            className={`inner-tab ${activeTab === tab ? "active" : ""}`}
           >
             {tab}
           </button>
@@ -149,7 +145,7 @@ function Social() {
       {activeTab === "Feed" && (
         <>
           <CreatePost onOpen={() => setComposerOpen(true)} />
-          <div className="mt-6 space-y-5">
+          <div className="mt-4 space-y-3">
             {posts.map((post) => (
               <PostCard
                 key={post.id}
@@ -226,7 +222,7 @@ function Social() {
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="truncate text-xl font-bold">{club.name}</div>
+                  <div className="truncate text-base font-semibold">{club.name}</div>
                   <div className="mt-1 text-sm text-[#888888]">{club.members}</div>
                   <div className="mt-3 text-sm text-white">Próximo treino: {club.next}</div>
                 </div>
@@ -251,7 +247,7 @@ function Social() {
 
       <button
         onClick={() => setComposerOpen(true)}
-        className="fixed bottom-[90px] left-1/2 z-30 ml-[130px] grid h-[68px] w-[68px] -translate-x-1/2 place-items-center rounded-full bg-[#C8FF00] text-black shadow-[0_0_34px_rgba(200,255,0,0.32)]"
+        className="fixed bottom-[90px] left-1/2 z-30 ml-[120px] grid h-14 w-14 -translate-x-1/2 place-items-center rounded-full bg-[#C8FF00] text-black shadow-[0_4px_16px_rgba(200,255,0,0.35)]"
         aria-label="Criar post"
       >
         <Plus className="h-10 w-10" strokeWidth={2.2} />
@@ -265,17 +261,17 @@ function Social() {
 
 function CreatePost({ onOpen }: { onOpen: () => void }) {
   return (
-    <section className="rounded-2xl border border-white/[0.06] bg-[#1A1A1A] p-4">
-      <div className="flex items-center gap-4 border-b border-white/[0.06] pb-5">
-        <Avatar kind="runner" size="lg" online />
+    <section className="rounded-2xl border border-white/[0.06] bg-[#1A1A1A] px-4 py-3">
+      <div className="flex items-center gap-3">
+        <Avatar kind="runner" size="sm" online />
         <button
           onClick={onOpen}
-          className="min-w-0 flex-1 truncate text-left text-[clamp(17px,4.8vw,22px)] text-[#888888]"
+          className="min-h-11 min-w-0 flex-1 truncate rounded-full bg-[#111111] px-4 py-2 text-left text-sm text-[#555555]"
         >
           No que você está pensando?
         </button>
       </div>
-      <div className="grid grid-cols-3 divide-x divide-white/[0.06] pt-4">
+      <div className="mt-3 flex gap-2">
         <PostAction icon={<Activity />} label="Atividade" onClick={onOpen} />
         <PostAction icon={<Camera />} label="Foto" onClick={onOpen} />
         <PostAction icon={<Trophy />} label="Conquista" onClick={onOpen} />
@@ -309,54 +305,40 @@ function PostCard({
 }) {
   return (
     <article className="rounded-2xl border border-white/[0.06] bg-[#1A1A1A] p-4">
-      <div className="flex items-start gap-3">
+      <div className="flex items-center gap-2.5">
         <Avatar kind={post.avatar} size="md" />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
-            <h2 className="truncate text-[clamp(20px,5vw,24px)] font-semibold">{post.name}</h2>
-            <span className="rounded-md border border-[#C8FF00]/50 px-2 py-0.5 text-xs font-bold text-[#C8FF00]">
+            <h2 className="truncate text-[15px] font-semibold">{post.name}</h2>
+            <span className="rounded border border-[#C8FF00] bg-[#1A2A00] px-1.5 py-0.5 text-[10px] font-bold text-[#C8FF00]">
               PRO
             </span>
             <CheckCircle2 className="h-4 w-4 shrink-0 text-[#C8FF00]" />
           </div>
-          <p className="mt-1 truncate text-[clamp(13px,3vw,15px)] text-[#888888]">
+          <p className="mt-1 truncate text-xs text-[#888888]">
             {post.location} • {post.time}
           </p>
         </div>
         <MoreHorizontal className="h-7 w-7 text-[#888888]" />
       </div>
 
-      <p className="mt-6 text-[clamp(18px,4.7vw,22px)] leading-snug text-[#D1D5DB]">
-        {post.caption}
-      </p>
+      <p className="mt-3 line-clamp-3 text-sm leading-[1.5] text-[#CCCCCC]">{post.caption}</p>
 
-      <div className="mt-4 overflow-hidden rounded-[18px] border border-white/[0.06]">
-        <div className="grid grid-cols-[104px_minmax(0,1fr)]">
-          <RouteThumb route={post.route} />
-          <div className="min-w-0 p-3">
-            <p className="truncate text-[clamp(15px,4vw,18px)] text-[#888888]">
-              {post.type} • {post.period}
-            </p>
-            <div className="mt-2 whitespace-nowrap text-[clamp(28px,7vw,40px)] font-black">
-              {post.distance}
-              <span className="ml-1 text-base font-medium">km</span>
-            </div>
-            <div className="mt-4 grid grid-cols-2 gap-x-3 gap-y-3 text-sm text-white">
-              <SmallMetric value={post.pace} label="Ritmo médio" />
-              <SmallMetric value={post.duration} label="Tempo" />
-              <SmallMetric value={post.elevation} label="Ganho elev." />
-              <SmallMetric value={post.calories} label="Calorias" />
-            </div>
-          </div>
+      <div className="mt-3 rounded-xl bg-[#111111] p-3">
+        <p className="text-[11px] uppercase tracking-[1px] text-[#888888]">
+          {post.type} • {post.period}
+        </p>
+        <div className="mt-2 grid grid-cols-2 gap-px overflow-hidden rounded-lg bg-white/[0.06]">
+          <PostMetric value={`${post.distance} km`} label="Distância" />
+          <PostMetric value={post.pace} label="Ritmo médio" />
+          <PostMetric value={post.duration} label="Tempo" />
+          <PostMetric value={post.calories} label="Calorias" />
         </div>
+        <div className="pt-2 text-[11px] text-[#888888]">↑ {post.elevation} ganho de elevação</div>
       </div>
 
-      <div className="mt-5 flex items-center gap-3">
-        <AvatarStack />
-        <div className="min-w-0 text-[clamp(13px,3vw,15px)] text-[#888888]">
-          <p className="truncate">Curtido por Lucas, Pedro e outras {likeCount} pessoas</p>
-          <p className="mt-1">{post.comments} comentários</p>
-        </div>
+      <div className="mt-3 text-xs text-[#888888]">
+        Curtido por {likeCount} pessoas · {post.comments} comentários
       </div>
 
       {commenting && (
@@ -377,8 +359,8 @@ function PostCard({
         </div>
       )}
 
-      <div className="mt-5 border-t border-white/[0.06] pt-4">
-        <div className="grid grid-cols-3 gap-1">
+      <div className="mt-3 border-t border-white/[0.06] pt-1">
+        <div className="flex items-center justify-around">
           <ActionButton
             active={liked}
             icon={<Heart className={liked ? "fill-current" : ""} />}
@@ -397,22 +379,26 @@ function Ranking() {
   return (
     <section className="mt-6 rounded-2xl border border-white/[0.06] bg-[#1A1A1A] p-4">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-xl font-bold">Ranking da semana</h2>
-        <span className="text-sm font-semibold text-[#C8FF00]">Ver completo ›</span>
+        <h2 className="text-base font-semibold">Ranking da semana</h2>
+        <span className="text-xs font-semibold text-[#C8FF00]">Ver completo ›</span>
       </div>
       <div className="space-y-3">
         {weeklyRanking.map((item) => (
           <div
             key={`${item.rank}-${item.name}`}
             className={`flex items-center gap-3 rounded-xl border p-3 ${
-              item.me ? "border-[#C8FF00]" : "border-white/[0.06]"
+              item.me ? "border-[#C8FF0044] bg-[#C8FF0008]" : "border-white/[0.06]"
             }`}
           >
-            <div className="w-8 text-lg font-black text-[#C8FF00]">#{item.rank}</div>
+            <div
+              className={`w-8 text-sm font-bold ${item.rank === 1 ? "text-[#C8FF00]" : "text-[#888888]"}`}
+            >
+              {item.rank}º
+            </div>
             <Avatar kind={item.name} size="md" />
             <div className="min-w-0 flex-1">
-              <div className="truncate font-bold">{item.name}</div>
-              <div className="text-sm text-[#888888]">{item.km} na semana</div>
+              <div className="truncate text-sm font-semibold">{item.name}</div>
+              <div className="text-xs text-[#C8FF00]">{item.km} na semana</div>
             </div>
           </div>
         ))}
@@ -429,7 +415,7 @@ function ShareSheet({ post, onClose }: { post: Post; onClose: () => void }) {
   };
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60">
-      <div className="w-full max-w-[430px] rounded-t-3xl border border-white/[0.06] bg-[#1A1A1A] p-4">
+      <div className="w-full max-w-[390px] rounded-t-3xl border border-white/[0.06] bg-[#1A1A1A] p-4">
         <button onClick={copy} className="h-12 w-full text-left font-bold">
           Copiar link
         </button>
@@ -461,9 +447,9 @@ function Composer({
   const [text, setText] = useState("");
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-black/70 px-4">
-      <div className="w-full max-w-[398px] rounded-3xl border border-white/[0.06] bg-[#1A1A1A] p-4">
+      <div className="w-full max-w-[358px] rounded-3xl border border-white/[0.06] bg-[#1A1A1A] p-4">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold">Criar post</h2>
+          <h2 className="text-base font-semibold">Criar post</h2>
           <button onClick={onClose} className="text-[#888888]">
             Cancelar
           </button>
@@ -508,18 +494,31 @@ function PostAction({
   return (
     <button
       onClick={onClick}
-      className="flex h-10 min-w-0 items-center justify-center gap-1.5 text-[clamp(12px,3vw,14px)] text-[#D1D5DB]"
+      className="min-h-8 rounded-full border border-white/10 bg-[#111111] px-3 py-1 text-[11px] text-[#888888]"
     >
-      <span className="[&_svg]:h-5 [&_svg]:w-5 [&_svg]:stroke-[1.7]">{icon}</span>
-      <span className="truncate">{label}</span>
+      <span className="inline-flex items-center gap-1.5 [&_svg]:h-3.5 [&_svg]:w-3.5 [&_svg]:stroke-[1.7]">
+        {icon}
+        <span className="truncate">{label}</span>
+      </span>
     </button>
   );
 }
 
-function Avatar({ kind, size, online }: { kind: string; size: "md" | "lg"; online?: boolean }) {
+function Avatar({
+  kind,
+  size,
+  online,
+}: {
+  kind: string;
+  size: "sm" | "md" | "lg";
+  online?: boolean;
+}) {
   const large = size === "lg";
+  const small = size === "sm";
   return (
-    <div className={`relative shrink-0 ${large ? "h-[72px] w-[72px]" : "h-[46px] w-[46px]"}`}>
+    <div
+      className={`relative shrink-0 ${large ? "h-[72px] w-[72px]" : small ? "h-9 w-9" : "h-10 w-10"}`}
+    >
       <div className="h-full w-full overflow-hidden rounded-full border-2 border-[#C8FF00] bg-[#111827]">
         <div className={`h-full w-full ${avatarBg(kind)}`} />
       </div>
@@ -541,50 +540,11 @@ function avatarBg(kind: string) {
   return "bg-[radial-gradient(circle_at_55%_32%,#d6a06f_0_18%,#111827_19%_42%,#020617_43%)]";
 }
 
-function RouteThumb({ route }: { route: string }) {
+function PostMetric({ value, label }: { value: string; label: string }) {
   return (
-    <div className="h-full min-h-[156px] bg-[#0A0A0A]">
-      <svg viewBox="0 0 220 220" className="h-full w-full" preserveAspectRatio="xMidYMid slice">
-        <rect width="220" height="220" fill="#0A0A0A" />
-        <path
-          d="M0 40H220M0 88H220M0 136H220M0 184H220M40 0V220M88 0V220M136 0V220M184 0V220"
-          stroke="rgba(255,255,255,0.06)"
-        />
-        <path
-          d={route}
-          fill="none"
-          stroke="#C8FF00"
-          strokeWidth="5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <circle cx="66" cy="170" r="12" fill="#C8FF00" />
-        <circle cx="66" cy="170" r="5" fill="#0A0A0A" />
-      </svg>
-    </div>
-  );
-}
-
-function SmallMetric({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="min-w-0">
-      <div className="truncate font-bold">{value}</div>
-      <div className="mt-1 truncate text-[11px] text-[#888888]">{label}</div>
-    </div>
-  );
-}
-
-function AvatarStack() {
-  return (
-    <div className="flex shrink-0 -space-x-3">
-      {["juliana", "pedro", "marcos", "runner"].map((kind) => (
-        <div
-          key={kind}
-          className="h-8 w-8 overflow-hidden rounded-full border-2 border-[#1A1A1A] bg-[#111827]"
-        >
-          <div className={`h-full w-full ${avatarBg(kind)}`} />
-        </div>
-      ))}
+    <div className="min-w-0 bg-[#111111] px-3 py-2.5">
+      <div className="truncate text-lg font-bold text-white">{value}</div>
+      <div className="mt-0.5 truncate text-[11px] text-[#888888]">{label}</div>
     </div>
   );
 }
@@ -603,9 +563,11 @@ function ActionButton({
   return (
     <button
       onClick={onClick}
-      className={`flex min-w-0 items-center justify-center gap-1 text-[clamp(11px,3vw,15px)] ${active ? "text-[#C8FF00]" : "text-[#D1D5DB]"}`}
+      className={`flex min-h-11 min-w-0 items-center justify-center gap-1 text-xs ${active ? "text-[#C8FF00]" : "text-[#888888]"}`}
     >
-      <span className="shrink-0 [&_svg]:h-5 [&_svg]:w-5 [&_svg]:stroke-[1.8]">{icon}</span>
+      <span className="shrink-0 [&_svg]:h-[18px] [&_svg]:w-[18px] [&_svg]:stroke-[1.8]">
+        {icon}
+      </span>
       <span className="truncate">{label}</span>
     </button>
   );

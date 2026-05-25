@@ -49,79 +49,73 @@ function Perfil() {
   };
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-[430px] overflow-x-hidden bg-[#0A0A0A] px-4 pt-safe pb-[96px] text-white">
-      <header className="flex items-center justify-between pt-7 pb-8">
-        <h1 className="text-[31px] font-black tracking-[-0.04em]">Perfil</h1>
-        <div className="flex items-center gap-4">
+    <main className="screen-container bg-[#0A0A0A] pt-safe text-white">
+      <header className="flex items-center justify-between pt-4 pb-4">
+        <h1 className="text-2xl font-bold tracking-[-0.3px]">Perfil</h1>
+        <div className="flex items-center gap-3 text-[#888888]">
           <NotificationBell />
           <button className="grid h-11 w-11 place-items-center" aria-label="Configurações">
-            <Settings className="h-8 w-8" strokeWidth={1.8} />
+            <Settings className="h-[22px] w-[22px]" strokeWidth={1.8} />
           </button>
         </div>
       </header>
 
-      <section className="space-y-5">
-        <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-4">
-          <div className="relative h-28 w-28">
+      <section>
+        <div className="flex items-start gap-[14px] py-4">
+          <div className="relative h-20 w-20 shrink-0">
             <img
               src="/images/hero-running.png"
               alt=""
-              className="h-28 w-28 rounded-full border-2 border-[#C8FF00] object-cover"
+              className="h-20 w-20 rounded-full border-2 border-[#C8FF00] object-cover"
             />
             <button
               onClick={salvar}
-              className="absolute right-0 bottom-0 grid h-10 w-10 place-items-center rounded-full bg-[#2A2A2A]"
+              className="absolute right-0 bottom-0 grid h-6 w-6 place-items-center rounded-full border border-white/10 bg-[#1A1A1A]"
               aria-label="Editar perfil"
             >
-              <Edit3 className="h-5 w-5" strokeWidth={1.7} />
+              <Edit3 className="h-3.5 w-3.5" strokeWidth={1.7} />
             </button>
           </div>
 
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
               <input
                 value={perfil.nome || nome}
                 onChange={(event) => setPerfil({ ...perfil, nome: event.target.value })}
-                className="min-w-0 flex-1 bg-transparent text-[22px] font-black leading-tight tracking-[-0.04em] outline-none"
+                className="min-w-0 flex-1 bg-transparent text-lg font-bold leading-tight text-white outline-none"
                 aria-label="Nome"
               />
-              <span className="rounded border border-[#C8FF00]/45 px-2 py-0.5 text-xs font-bold text-[#C8FF00]">
+              <span className="rounded border border-[#C8FF00] bg-[#1A2A00] px-2 py-0.5 text-[11px] font-bold text-[#C8FF00]">
                 PRO
               </span>
             </div>
-            <div className="mt-1 text-base text-[#888888]">{username}</div>
-            <div className="mt-3 flex items-center gap-2 text-sm text-[#888888]">
-              <MapPin className="h-4 w-4" /> {perfil.cidade || "São Paulo, SP"}
+            <div className="mt-0.5 truncate text-[13px] text-[#888888]">{username}</div>
+            <div className="mt-1 flex items-center gap-1.5 text-xs text-[#888888]">
+              <MapPin className="h-3.5 w-3.5" /> {perfil.cidade || "São Paulo, SP"}
             </div>
-            <p className="mt-4 text-[15px] leading-snug text-[#888888]">
+            <p className="mt-1.5 line-clamp-2 text-[13px] leading-[1.4] text-[#888888]">
               Corro por evolução. Pulse Coach me guia. Disciplina me leva.
             </p>
           </div>
         </div>
-        <div className="grid grid-cols-[1fr_auto] items-end gap-4">
-          <div className="flex gap-10">
-            <ProfileCount value="135" label="Seguindo" />
-            <ProfileCount value="1.248" label="Seguidores" />
-          </div>
+        <div className="flex justify-end pb-2">
           <div className="text-center">
-            <div className="grid h-24 w-24 place-items-center bg-[#101409] text-[34px] font-black text-[#C8FF00] [clip-path:polygon(50%_0%,92%_25%,92%_75%,50%_100%,8%_75%,8%_25%)]">
+            <div className="grid h-20 w-20 place-items-center bg-[#101409] text-[28px] font-bold text-[#C8FF00] [clip-path:polygon(50%_0%,92%_25%,92%_75%,50%_100%,8%_75%,8%_25%)]">
               78
             </div>
-            <div className="mt-2 flex items-center justify-center gap-1 text-[11px] uppercase text-[#888888]">
+            <div className="mt-2 flex items-center justify-center gap-1 text-[9px] uppercase tracking-[2px] text-[#888888]">
               VITALS SCORE <Info className="h-3.5 w-3.5" />
             </div>
           </div>
         </div>
       </section>
 
-      <nav className="mt-8 grid grid-cols-4 border-b border-white/10">
+      <nav className="inner-tabs mt-3">
         {tabs.map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`min-w-0 truncate pb-4 text-center text-[clamp(13px,3.4vw,17px)] font-semibold ${
-              activeTab === tab ? "border-b-2 border-[#C8FF00] text-[#C8FF00]" : "text-[#555555]"
-            }`}
+            className={`inner-tab ${activeTab === tab ? "active" : ""}`}
           >
             {tab}
           </button>
@@ -152,7 +146,7 @@ function ResumoTab({
   onMetric: (metric: (typeof performanceOptions)[number]) => void;
 }) {
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       <Card>
         <SectionHeader title="Esta semana" action="Ver todas" />
         <WeeklyGrid />
@@ -161,14 +155,14 @@ function ResumoTab({
       <Card>
         <div className="mb-5 flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-xl font-bold">Performance</h2>
-            <p className="mt-1 text-base text-[#888888]">Últimos 6 meses</p>
+            <h2 className="text-base font-semibold">Performance</h2>
+            <p className="mt-1 text-sm text-[#888888]">Últimos 6 meses</p>
           </div>
           <label className="relative">
             <select
               value={metric}
               onChange={(event) => onMetric(event.target.value as typeof metric)}
-              className="h-11 appearance-none rounded-lg border border-white/[0.06] bg-[#0A0A0A] pr-9 pl-4 text-base outline-none"
+              className="h-11 appearance-none rounded-lg border border-white/[0.06] bg-[#0A0A0A] pr-9 pl-4 text-[13px] text-white outline-none"
             >
               {performanceOptions.map((item) => (
                 <option key={item}>{item}</option>
@@ -234,7 +228,7 @@ function StatsTab() {
     <div className="space-y-5">
       <Card>
         <SectionHeader title="Totais históricos" />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid-2col">
           {[
             ["Km total", "4.918"],
             ["Horas", "512h"],
@@ -247,7 +241,7 @@ function StatsTab() {
       </Card>
       <Card>
         <SectionHeader title="Recordes pessoais" />
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-3">
           {[
             ["5k", "23:48", "12 abr"],
             ["10k", "49:52", "02 mar"],
@@ -257,8 +251,8 @@ function StatsTab() {
             ["Sequência", "18 dias", "Hoje"],
           ].map(([label, value, date]) => (
             <div key={label} className="rounded-xl border border-white/[0.06] bg-[#0A0A0A] p-3">
-              <div className="text-[22px] font-black text-[#C8FF00]">{value}</div>
-              <div className="mt-1 text-sm font-bold">{label}</div>
+              <div className="text-[28px] font-bold text-[#C8FF00]">{value}</div>
+              <div className="mt-1 text-xs font-semibold">{label}</div>
               <div className="text-xs text-[#888888]">{date}</div>
             </div>
           ))}
@@ -314,23 +308,23 @@ function AchievementsTab() {
   return (
     <Card>
       <div className="mb-5 flex items-center justify-between">
-        <h2 className="text-xl font-bold">Conquistas</h2>
-        <span className="text-sm text-[#888888]">12 de 48 desbloqueadas</span>
+        <h2 className="text-base font-semibold">Conquistas</h2>
+        <span className="text-xs text-[#888888]">12 de 48 conquistas</span>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-[10px]">
         {items.map(([name, detail, unlocked, rare]) => (
           <div
             key={String(name)}
-            className={`min-h-[116px] rounded-2xl border p-3 text-center ${
-              rare ? "border-[#C8FF00]" : "border-white/[0.06]"
-            } bg-[#0A0A0A]`}
+            className={`flex min-h-[104px] flex-col items-center gap-1.5 rounded-xl border bg-[#1A1A1A] px-2 py-3 text-center ${
+              unlocked ? "border-[#C8FF0033]" : "border-white/[0.06] opacity-40 grayscale"
+            } ${rare ? "border-[#C8FF00]" : ""}`}
           >
             <div
               className={`mx-auto grid h-10 w-10 place-items-center rounded-full ${unlocked ? "text-[#C8FF00]" : "text-[#333333]"}`}
             >
               {unlocked ? <Medal className="h-8 w-8" /> : <Lock className="h-7 w-7" />}
             </div>
-            <div className="mt-2 text-[12px] font-bold leading-tight">{name}</div>
+            <div className="text-[11px] font-bold leading-tight">{name}</div>
             <div className="mt-1 text-[10px] text-[#888888]">{detail}</div>
           </div>
         ))}
@@ -343,7 +337,7 @@ function PerformanceChart({ metric }: { metric: keyof typeof performanceSeries }
   const data = performanceSeries[metric];
   const last = data[data.length - 1];
   return (
-    <div className="relative h-[190px]">
+    <div className="relative h-[180px]">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 16, right: 6, bottom: 0, left: -30 }}>
           <defs>
@@ -352,7 +346,7 @@ function PerformanceChart({ metric }: { metric: keyof typeof performanceSeries }
               <stop offset="100%" stopColor="#C8FF00" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <XAxis dataKey="label" axisLine={false} tickLine={false} stroke="#555555" fontSize={12} />
+          <XAxis dataKey="label" axisLine={false} tickLine={false} stroke="#555555" fontSize={11} />
           <YAxis hide />
           <Tooltip
             cursor={false}
@@ -389,14 +383,14 @@ function WeeklyGrid() {
     [<Trophy />, "2.896", "Calorias"],
   ] as const;
   return (
-    <div className="grid grid-cols-4 divide-x divide-white/[0.06]">
+    <div className="stats-grid-4">
       {items.map(([icon, value, label]) => (
         <div key={label} className="min-w-0 px-1.5 text-center first:pl-0 last:pr-0">
           <div className="mx-auto mb-3 flex h-8 items-center justify-center text-[#C8FF00] [&_svg]:h-7 [&_svg]:w-7 [&_svg]:stroke-[1.6]">
             {icon}
           </div>
-          <div className="truncate text-[clamp(16px,4vw,22px)] font-black">{value}</div>
-          <div className="mt-2 truncate text-[clamp(9px,2vw,11px)] text-[#888888]">{label}</div>
+          <div className="truncate text-lg font-bold">{value}</div>
+          <div className="mt-2 truncate text-[11px] text-[#888888]">{label}</div>
         </div>
       ))}
     </div>
@@ -405,21 +399,21 @@ function WeeklyGrid() {
 
 function ActivityRow({ activity }: { activity: PulseActivity }) {
   return (
-    <button className="flex w-full items-center gap-3 py-4 text-left first:pt-0 last:pb-0">
-      <GoogleMapView
-        paths={[activity.route]}
-        className="h-[72px] w-[72px] shrink-0 rounded-lg"
-        interactive={false}
-        showControls={false}
-        defaultMode="roadmap"
-        strokeWeight={3}
-      />
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[clamp(16px,4vw,20px)] font-bold">{activity.title}</div>
-        <div className="mt-1 truncate text-[clamp(13px,3vw,15px)] text-[#888888]">
-          {activity.date}
-        </div>
-        <div className="mt-3 flex gap-x-3 overflow-hidden text-[clamp(11px,2.7vw,13px)] text-[#888888]">
+    <button className="activity-card my-3 text-left first:mt-0 last:mb-0">
+      <div className="map-thumb">
+        <GoogleMapView
+          paths={[activity.route]}
+          className="h-[72px] w-[72px] rounded-lg"
+          interactive={false}
+          showControls={false}
+          defaultMode="roadmap"
+          strokeWeight={3}
+        />
+      </div>
+      <div className="content">
+        <div className="text-base font-bold">{activity.title}</div>
+        <div className="mt-1 text-[13px] text-[#888888]">{activity.date}</div>
+        <div className="mt-3 flex gap-x-3 text-xs text-[#888888]">
           <span className="truncate">{activity.distance}</span>
           <span className="truncate">{activity.pace}</span>
           <span className="truncate">{activity.time}</span>
@@ -450,8 +444,8 @@ function Card({ children }: { children: React.ReactNode }) {
 function SectionHeader({ title, action }: { title: string; action?: string }) {
   return (
     <div className="mb-5 flex items-center justify-between gap-4">
-      <h2 className="truncate text-xl font-bold">{title}</h2>
-      {action && <span className="shrink-0 text-sm font-semibold text-[#C8FF00]">{action}</span>}
+      <h2 className="truncate text-base font-semibold">{title}</h2>
+      {action && <span className="shrink-0 text-xs font-semibold text-[#C8FF00]">{action}</span>}
     </div>
   );
 }
@@ -460,16 +454,7 @@ function MetricBox({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-white/[0.06] bg-[#0A0A0A] p-3">
       <div className="text-[11px] text-[#888888]">{label}</div>
-      <div className="mt-2 text-[26px] font-black text-[#C8FF00]">{value}</div>
-    </div>
-  );
-}
-
-function ProfileCount({ value, label }: { value: string; label: string }) {
-  return (
-    <div>
-      <div className="text-2xl font-black">{value}</div>
-      <div className="text-base text-[#888888]">{label}</div>
+      <div className="mt-2 text-2xl font-bold text-[#C8FF00]">{value}</div>
     </div>
   );
 }

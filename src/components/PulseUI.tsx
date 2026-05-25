@@ -8,7 +8,7 @@ import { demoPath } from "@/lib/pulse-design-data";
 
 export function AppScreen({ children }: { children: React.ReactNode }) {
   return (
-    <main className="mx-auto w-full max-w-[430px] overflow-x-hidden px-4 pt-safe pb-[90px]">
+    <main className="mx-auto w-full max-w-[390px] overflow-x-hidden px-4 pt-safe pb-[90px]">
       {children}
     </main>
   );
@@ -26,9 +26,7 @@ export function AppHeader({
   return (
     <header className="flex items-start justify-between gap-4 pt-7 pb-6">
       <div>
-        <h1 className="text-[clamp(22px,5vw,28px)] leading-tight font-black tracking-[-0.03em] text-white">
-          {title}
-        </h1>
+        <h1 className="text-2xl leading-tight font-bold tracking-[-0.3px] text-white">{title}</h1>
         {subtitle && <p className="mt-1 text-base leading-snug text-[#888888]">{subtitle}</p>}
       </div>
       <div className="flex items-center gap-4 text-white">{right ?? <NotificationBell />}</div>
@@ -66,7 +64,7 @@ export function SectionTitle({
 }) {
   return (
     <div className="mb-5 flex items-center justify-between gap-4">
-      <div className="min-w-0 flex items-center gap-3 text-[clamp(16px,4vw,20px)] font-bold text-white">
+      <div className="min-w-0 flex items-center gap-3 text-base font-semibold text-white">
         {icon}
         <span className="truncate">{title}</span>
       </div>
@@ -118,18 +116,16 @@ export function WeeklySummary({ showComparisons = true }: { showComparisons?: bo
           <div className="mx-auto mb-3 flex h-9 items-center justify-center text-[#C8FF00]">
             {item.icon}
           </div>
-          <div className="whitespace-nowrap text-[clamp(18px,4vw,24px)] font-black leading-none tracking-[-0.04em] text-white">
+          <div className="whitespace-nowrap text-lg font-bold leading-none text-white">
             {item.value}
             {item.unit && (
               <span className="ml-1 text-sm font-semibold tracking-normal">{item.unit}</span>
             )}
           </div>
-          <div className="mt-2 truncate text-[clamp(9px,2vw,11px)] text-[#888888]">
-            {item.label}
-          </div>
+          <div className="mt-2 truncate text-[11px] text-[#888888]">{item.label}</div>
           {showComparisons && (
             <div
-              className={`mt-3 text-[clamp(9px,2vw,11px)] font-bold ${item.good ? "text-[#C8FF00]" : "text-[#ff4d4d]"}`}
+              className={`mt-3 text-[10px] font-bold ${item.good ? "text-[#C8FF00]" : "text-[#ff4d4d]"}`}
             >
               {item.delta}
             </div>
@@ -145,7 +141,7 @@ export function VitalsHex({ value = 78, small = false }: { value?: number; small
     <div className={`relative grid place-items-center ${small ? "h-28 w-28" : "h-32 w-32"}`}>
       <div className="vitals-hex absolute inset-2" />
       <div className="relative text-center">
-        <div className={`${small ? "text-4xl" : "text-[42px]"} font-black text-[#C8FF00]`}>
+        <div className={`${small ? "text-[28px]" : "text-4xl"} font-bold text-[#C8FF00]`}>
           {value}
         </div>
       </div>
@@ -229,11 +225,9 @@ function ActivityRow({
         ariaLabel="Miniatura do mapa da atividade"
       />
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[clamp(16px,4vw,20px)] font-bold leading-tight text-white">
-          {title}
-        </div>
-        <div className="mt-1 truncate text-[clamp(13px,3vw,15px)] text-[#888888]">{date}</div>
-        <div className="mt-3 flex gap-x-3 overflow-hidden text-[clamp(11px,2.7vw,13px)] text-[#888888]">
+        <div className="truncate text-base font-bold leading-tight text-white">{title}</div>
+        <div className="mt-1 truncate text-[13px] text-[#888888]">{date}</div>
+        <div className="mt-3 flex gap-x-3 overflow-hidden text-xs text-[#888888]">
           <span className="flex min-w-0 items-center gap-1.5 truncate">
             <Footprints className="h-4 w-4" strokeWidth={1.5} />{" "}
             <span className="truncate">{km ? km.toFixed(2).replace(".", ",") : "5,02"} km</span>

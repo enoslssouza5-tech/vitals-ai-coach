@@ -41,32 +41,32 @@ function Atividades() {
   }
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-[430px] overflow-x-hidden bg-[#0A0A0A] px-4 pt-safe pb-[96px] text-white">
-      <header className="flex items-center justify-between pt-7 pb-5">
-        <h1 className="text-[clamp(28px,7vw,34px)] font-black tracking-[-0.04em]">Atividades</h1>
-        <button className="grid h-11 w-11 place-items-center rounded-full bg-[#1A1A1A] text-white">
-          <SlidersHorizontal className="h-5 w-5" strokeWidth={1.7} />
+    <main className="screen-container bg-[#0A0A0A] pt-safe text-white">
+      <header className="flex items-center justify-between pt-4 pb-4">
+        <h1 className="text-2xl font-bold tracking-[-0.3px]">Atividades</h1>
+        <button className="grid h-11 w-11 place-items-center rounded-full bg-[#1A1A1A] text-[#888888]">
+          <SlidersHorizontal className="h-[22px] w-[22px]" strokeWidth={1.7} />
         </button>
       </header>
 
-      <label className="flex h-12 items-center gap-3 rounded-2xl border border-white/[0.06] bg-[#1A1A1A] px-4 text-[#888888]">
+      <label className="flex min-h-11 items-center gap-3 rounded-xl bg-[#1A1A1A] px-4 py-3 text-[#555555]">
         <Search className="h-5 w-5 shrink-0" strokeWidth={1.7} />
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Buscar atividades..."
-          className="min-w-0 flex-1 bg-transparent text-[15px] text-white outline-none placeholder:text-[#888888]"
+          className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-[#555555]"
         />
       </label>
 
-      <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+      <div className="mt-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
         {filters.map((item) => (
           <button
             key={item}
             onClick={() => setFilter(item)}
-            className={`h-10 shrink-0 rounded-full border px-4 text-sm font-bold ${
+            className={`min-h-8 shrink-0 rounded-full border px-4 py-1.5 text-[13px] font-medium whitespace-nowrap ${
               filter === item
-                ? "border-[#C8FF00] bg-[#C8FF00] text-black"
+                ? "border-[#C8FF00] bg-[#C8FF00] font-bold text-black"
                 : "border-white/10 bg-[#1A1A1A] text-[#888888]"
             }`}
           >
@@ -75,13 +75,13 @@ function Atividades() {
         ))}
       </div>
 
-      <section className="mt-6 rounded-2xl border border-white/[0.06] bg-[#1A1A1A] p-4">
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <h2 className="text-[clamp(17px,4vw,20px)] font-bold">Stats do período</h2>
+      <section className="mt-4 rounded-2xl border border-white/[0.06] bg-[#1A1A1A] p-4">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-base font-semibold">Stats do período</h2>
           <select
             value={period}
             onChange={(event) => setPeriod(event.target.value as typeof period)}
-            className="h-10 rounded-xl border border-white/[0.08] bg-[#0A0A0A] px-3 text-sm font-semibold text-white outline-none"
+            className="h-9 rounded-lg border border-white/[0.08] bg-[#1A1A1A] px-3 text-[13px] text-white outline-none"
           >
             {periods.map((item) => (
               <option key={item}>{item}</option>
@@ -91,10 +91,10 @@ function Atividades() {
         <StatsGrid values={periodStats[period]} />
       </section>
 
-      <section className="mt-6 space-y-3">
+      <section className="mt-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-[clamp(18px,4vw,22px)] font-bold">Lista completa</h2>
-          <span className="text-sm font-semibold text-[#C8FF00]">{activities.length} treinos</span>
+          <h2 className="text-base font-semibold">Lista completa</h2>
+          <span className="text-xs font-semibold text-[#C8FF00]">{activities.length} treinos</span>
         </div>
         {activities.map((activity) => (
           <ActivityCard
@@ -116,16 +116,14 @@ function StatsGrid({ values }: { values: string[] }) {
     { icon: <Flame />, label: "Calorias", value: values[3] },
   ];
   return (
-    <div className="grid grid-cols-4 divide-x divide-white/[0.06]">
+    <div className="stats-grid-4">
       {items.map((item) => (
         <div key={item.label} className="min-w-0 px-1.5 text-center first:pl-0 last:pr-0">
           <div className="mx-auto mb-3 flex h-8 items-center justify-center text-[#C8FF00] [&_svg]:h-7 [&_svg]:w-7 [&_svg]:stroke-[1.6]">
             {item.icon}
           </div>
-          <div className="truncate text-[clamp(16px,4vw,22px)] font-black">{item.value}</div>
-          <div className="mt-2 truncate text-[clamp(9px,2vw,11px)] text-[#888888]">
-            {item.label}
-          </div>
+          <div className="truncate text-lg font-bold">{item.value}</div>
+          <div className="mt-2 truncate text-[11px] text-[#888888]">{item.label}</div>
         </div>
       ))}
     </div>
@@ -134,26 +132,21 @@ function StatsGrid({ values }: { values: string[] }) {
 
 function ActivityCard({ activity, onClick }: { activity: PulseActivity; onClick: () => void }) {
   return (
-    <button
-      onClick={onClick}
-      className="flex w-full items-center gap-3 rounded-2xl border border-white/[0.06] bg-[#1A1A1A] p-3 text-left"
-    >
-      <GoogleMapView
-        paths={[activity.route]}
-        className="h-[72px] w-[72px] shrink-0 rounded-lg"
-        interactive={false}
-        showControls={false}
-        defaultMode="roadmap"
-        strokeWeight={3}
-      />
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[clamp(16px,4vw,19px)] font-bold text-white">
-          {activity.title}
-        </div>
-        <div className="mt-1 truncate text-[clamp(12px,3vw,14px)] text-[#888888]">
-          {activity.date}
-        </div>
-        <div className="mt-3 flex gap-2 overflow-hidden text-[12px] text-[#888888]">
+    <button onClick={onClick} className="activity-card text-left">
+      <div className="map-thumb">
+        <GoogleMapView
+          paths={[activity.route]}
+          className="h-[72px] w-[72px] rounded-lg"
+          interactive={false}
+          showControls={false}
+          defaultMode="roadmap"
+          strokeWeight={3}
+        />
+      </div>
+      <div className="content">
+        <div className="text-base font-bold text-white">{activity.title}</div>
+        <div className="mt-1 text-[13px] text-[#888888]">{activity.date}</div>
+        <div className="mt-3 flex gap-2 text-xs text-[#888888]">
           <span className="flex min-w-0 items-center gap-1 truncate">
             <Footprints className="h-4 w-4 shrink-0" />{" "}
             <span className="truncate">{activity.distance}</span>
@@ -166,8 +159,10 @@ function ActivityCard({ activity, onClick }: { activity: PulseActivity; onClick:
           </span>
         </div>
       </div>
-      <div className="flex shrink-0 flex-col items-end gap-3">
-        <span className="rounded-md bg-[#1A2A00] px-2 py-1 text-[11px] font-semibold text-[#C8FF00]">
+      <div className="right-col">
+        <span
+          className={`rounded-md px-2 py-1 text-[11px] font-semibold ${activity.quality === "Excelente" ? "bg-[#2A1A00] text-[#FF9900]" : "bg-[#1A2A00] text-[#C8FF00]"}`}
+        >
           {activity.quality}
         </span>
         <ChevronRight className="h-5 w-5 text-[#555555]" />
@@ -187,7 +182,7 @@ function ActivityDetail({ activity, onBack }: { activity: PulseActivity; onBack:
   ];
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-[430px] overflow-x-hidden bg-[#0A0A0A] px-4 pt-safe pb-[96px] text-white">
+    <main className="screen-container bg-[#0A0A0A] pt-safe text-white">
       <header className="flex items-center justify-between pt-5 pb-4">
         <button onClick={onBack} className="flex h-11 items-center gap-2 text-[#C8FF00]">
           <ChevronLeft className="h-5 w-5" /> Voltar
@@ -207,19 +202,15 @@ function ActivityDetail({ activity, onBack }: { activity: PulseActivity; onBack:
       />
 
       <section className="mt-5">
-        <h1 className="text-[clamp(26px,7vw,32px)] font-black tracking-[-0.04em]">
-          {activity.title}
-        </h1>
+        <h1 className="text-2xl font-bold tracking-[-0.3px]">{activity.title}</h1>
         <p className="mt-1 text-[#888888]">{activity.date}</p>
       </section>
 
-      <section className="mt-5 grid grid-cols-2 gap-3">
+      <section className="mt-5 grid-2col">
         {stats.map(([label, value]) => (
           <div key={label} className="rounded-2xl border border-white/[0.06] bg-[#1A1A1A] p-4">
             <div className="text-[11px] font-semibold text-[#888888]">{label}</div>
-            <div className="mt-2 truncate text-[clamp(22px,6vw,30px)] font-black text-[#C8FF00]">
-              {value}
-            </div>
+            <div className="mt-2 truncate text-[28px] font-bold text-[#C8FF00]">{value}</div>
           </div>
         ))}
       </section>

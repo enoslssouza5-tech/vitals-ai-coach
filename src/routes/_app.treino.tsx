@@ -204,7 +204,7 @@ function TreinoPage() {
   };
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-[430px] overflow-x-hidden bg-[#0A0A0A] px-4 pt-safe pb-[96px] text-white">
+    <main className="screen-container bg-[#0A0A0A] pt-safe text-white">
       {stage === "setup" && (
         <>
           <Header title="Treino de hoje" subtitle={new Date().toLocaleDateString("pt-BR")} />
@@ -334,7 +334,7 @@ function TreinoPage() {
 function Header({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <header className="pt-7 pb-6">
-      <h1 className="text-[clamp(28px,7vw,34px)] font-black tracking-[-0.04em]">{title}</h1>
+      <h1 className="text-2xl font-bold tracking-[-0.3px]">{title}</h1>
       <p className="mt-1 text-[15px] text-[#888888]">{subtitle}</p>
     </header>
   );
@@ -362,7 +362,7 @@ function CoachBriefing({
           <div className="text-[10px] font-bold uppercase tracking-wide text-[#C8FF00]">
             ✦ PULSE COACH
           </div>
-          <h2 className="mt-2 truncate text-[clamp(17px,4vw,22px)] font-black">
+          <h2 className="mt-2 truncate text-lg font-bold">
             Ritmo controlado para evoluir sem quebrar.
           </h2>
         </div>
@@ -560,7 +560,7 @@ function MiniStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-white/[0.06] bg-[#0A0A0A] p-3">
       <div className="truncate text-[11px] text-[#888888]">{label}</div>
-      <div className="mt-2 truncate text-[clamp(18px,5vw,24px)] font-black text-white">{value}</div>
+      <div className="mt-2 truncate text-lg font-bold text-white">{value}</div>
     </div>
   );
 }
@@ -569,7 +569,7 @@ function LiveMetric({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl border border-white/[0.06] bg-[#1A1A1A] p-3 text-center">
       <Timer className="mx-auto h-5 w-5 text-[#C8FF00]" />
-      <div className="mt-3 truncate text-[clamp(16px,4vw,22px)] font-black">{value}</div>
+      <div className="mt-3 truncate text-lg font-bold">{value}</div>
       <div className="mt-1 truncate text-[11px] text-[#888888]">{label}</div>
     </div>
   );
