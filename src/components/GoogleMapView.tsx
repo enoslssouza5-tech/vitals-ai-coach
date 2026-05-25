@@ -1,4 +1,5 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
+import { MapPin } from "lucide-react";
 import {
   boundsFromPath,
   GOOGLE_MAPS_DARK_STYLE,
@@ -196,13 +197,10 @@ export const GoogleMapView = memo(function GoogleMapView({
   if (error) {
     return (
       <div
-        className={`relative overflow-hidden bg-card/50 ${className ?? ""}`}
+        className={`relative overflow-hidden bg-[#1A1A1A] ${className ?? ""}`}
         aria-label={ariaLabel}
       >
         <FallbackRoute paths={simplifiedPaths} />
-        <div className="absolute top-3 right-3 rounded-full bg-background/80 border border-border/60 px-3 py-1.5 text-[9px] font-black text-muted-foreground uppercase">
-          GOOGLE MAPS API KEY
-        </div>
       </div>
     );
   }
@@ -264,26 +262,35 @@ function FallbackRoute({ paths }: { paths: LatLngTuple[][] }) {
     : ["8,66", "28,28", "50,56", "72,24", "92,42"];
 
   return (
-    <svg
-      viewBox="0 0 100 80"
-      className="h-full w-full"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-    >
-      <rect width="100" height="80" fill="#0B1023" />
-      <path
-        d="M0 20H100M0 40H100M0 60H100M20 0V80M40 0V80M60 0V80M80 0V80"
-        stroke="#1a1a2e"
-        strokeWidth="0.5"
-      />
-      <polyline
-        points={points.join(" ")}
-        fill="none"
-        stroke="#00ff88"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <div className="relative h-full w-full overflow-hidden rounded-[inherit] bg-[#1A1A1A]">
+      <svg
+        viewBox="0 0 100 80"
+        className="absolute inset-0 h-full w-full opacity-80"
+        preserveAspectRatio="none"
+        aria-hidden="true"
+      >
+        <rect width="100" height="80" fill="#1A1A1A" />
+        <path
+          d="M0 20H100M0 40H100M0 60H100M20 0V80M40 0V80M60 0V80M80 0V80"
+          stroke="rgba(255,255,255,0.06)"
+          strokeWidth="0.5"
+        />
+        {path.length >= 2 && (
+          <polyline
+            points={points.join(" ")}
+            fill="none"
+            stroke="#C8FF00"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        )}
+      </svg>
+      {!path.length && (
+        <div className="absolute inset-0 grid place-items-center">
+          <MapPin className="h-8 w-8 text-[#C8FF00]" strokeWidth={1.7} />
+        </div>
+      )}
+    </div>
   );
 }

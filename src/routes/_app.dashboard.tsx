@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
   ActivityList,
@@ -21,7 +22,18 @@ import {
   type ClimaAtual,
 } from "@/lib/pulse-data";
 import { listarTreinos } from "@/lib/treino-history";
-import { Calendar, ChevronRight, Info, Sparkles } from "lucide-react";
+import {
+  Calendar,
+  ChevronRight,
+  Cloud,
+  CloudRain,
+  Droplets,
+  Info,
+  Sparkles,
+  Sun,
+  Thermometer,
+  Wind,
+} from "lucide-react";
 
 export const Route = createFileRoute("/_app/dashboard")({ component: Dashboard });
 
@@ -69,6 +81,8 @@ function Dashboard() {
       <AppHeader title={<>Bom dia, {firstName}! 👋</>} subtitle="Pronto para mais uma corrida?" />
 
       <div className="space-y-5">
+        <WeatherCard city={perfil.cidade || "São Paulo"} />
+
         <DesignCard>
           <SectionTitle
             title="Resumo da semana"
@@ -149,4 +163,260 @@ function Dashboard() {
       </div>
     </AppScreen>
   );
+}
+
+type WeatherDay = {
+  label: string;
+  icon: string;
+  max: number;
+};
+
+type WeatherState = {
+  temp: number;
+  feelsLike: number;
+  humidity: number;
+  wind: number;
+  rain: number;
+  condition: string;
+  icon: string;
+  forecast: WeatherDay[];
+};
+
+function WeatherCard({ city }: { city: string }) {
+  const [weather, setWeather] = useState<WeatherState | null>(null);
+  const [loading, setLoading] = useState(true);
+  const apiKey =
+    import.meta.env.VITE_WEATHER_API_KEY ||
+    import.meta.env.WEATHER_API_KEY ||
+    import.meta.env.VITE_OPENWEATHER_API_KEY ||
+    "";
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadWeather() {
+      if (!apiKey) {
+        setLoading(false);
+        return;
+      }
+      try {
+        const coords = await getWeatherCoords(city);
+        const params = new URLSearchParams({
+          appid: apiKey,
+          units: "metric",
+          lang: "pt_br",
+        });
+        if (coords) {
+          params.set("lat", String(coords.lat));
+          params.set("lon", String(coords.lon));
+        } else {
+          params.set("q", city);
+        }
+        const currentResponse = await fetch(
+          `https://api.openweathermap.org/data/2.5/weather?${params.toString()}`,
+        );
+        if (!currentResponse.ok) throw new Error("weather");
+        const current = await currentResponse.json();
+
+        const forecastParams = new URLSearchParams({
+          appid: apiKey,
+          units: "metric",
+          lang: "pt_br",
+        });
+        if (coords) {
+          forecastParams.set("lat", String(coords.lat));
+          forecastParams.set("lon", String(coords.lon));
+        } else {
+          forecastParams.set("q", city);
+        }
+        const forecastResponse = await fetch(
+          `https://api.openweathermap.org/data/2.5/forecast?${forecastParams.toString()}`,
+        );
+        if (!forecastResponse.ok) throw new Error("forecast");
+        const forecast = await forecastResponse.json();
+        if (cancelled) return;
+        setWeather({
+          temp: Math.round(current.main?.temp ?? 0),
+          feelsLike: Math.round(current.main?.feels_like ?? current.main?.temp ?? 0),
+          humidity: Math.round(current.main?.humidity ?? 0),
+          wind: Math.round((current.wind?.speed ?? 0) * 3.6),
+          rain: Math.round(
+            current.rain?.["1h"] ? Math.min(100, Number(current.rain["1h"]) * 25) : 0,
+          ),
+          condition: capitalize(current.weather?.[0]?.description ?? "Clima local"),
+          icon: current.weather?.[0]?.main ?? "Clouds",
+          forecast: buildForecast(forecast.list ?? []),
+        });
+      } catch {
+        if (!cancelled) setWeather(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    loadWeather();
+    return () => {
+      cancelled = true;
+    };
+  }, [apiKey, city]);
+
+  const hasWeather = Boolean(weather);
+  const recommendation = weather ? weatherRecommendation(weather.temp, weather.rain) : "";
+
+  return (
+    <section className="rounded-2xl border border-white/[0.06] bg-[#1A1A1A] p-4">
+      <div className="flex items-start gap-4">
+        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#0A0A0A] text-[#C8FF00]">
+          {hasWeather ? weatherIcon(weather.icon) : <Cloud className="h-7 w-7 text-[#333333]" />}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-end gap-1">
+            <span className="text-[36px] font-black leading-none text-white">
+              {weather ? weather.temp : "--"}
+            </span>
+            <span className="pb-1 text-lg font-bold text-white">°C</span>
+          </div>
+          <p className="mt-1 truncate text-[13px] text-[#888888]">
+            {weather
+              ? weather.condition
+              : loading
+                ? "Buscando clima local..."
+                : "Configure a API do clima nas variáveis de ambiente"}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-4 gap-2">
+        <WeatherInfo
+          icon={<Thermometer />}
+          label="Sensação"
+          value={weather ? `${weather.feelsLike}°C` : "--"}
+        />
+        <WeatherInfo
+          icon={<Droplets />}
+          label="Umidade"
+          value={weather ? `${weather.humidity}%` : "--"}
+        />
+        <WeatherInfo
+          icon={<Wind />}
+          label="Vento"
+          value={weather ? `${weather.wind} km/h` : "--"}
+        />
+        <WeatherInfo
+          icon={<CloudRain />}
+          label="Chuva"
+          value={weather ? `${weather.rain}%` : "--"}
+        />
+      </div>
+
+      <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
+        {(weather?.forecast ?? fallbackForecast()).map((day, index) => (
+          <div
+            key={`${day.label}-${index}`}
+            className={`min-w-[76px] rounded-xl border bg-[#0A0A0A] p-3 text-center ${
+              index === 0 ? "border-[#C8FF00]" : "border-white/[0.06]"
+            }`}
+          >
+            <div className="text-xs font-bold text-[#888888]">{day.label}</div>
+            <div className="mt-2 flex justify-center text-[#C8FF00]">{weatherIcon(day.icon)}</div>
+            <div className="mt-2 text-sm font-black text-white">
+              {day.max ? `${day.max}°` : "--°"}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 border-t border-white/[0.06] pt-3 text-xs leading-relaxed text-[#888888]">
+        {weather
+          ? recommendation
+          : "Quando a API estiver configurada, o Pulse ajusta a recomendação ao clima local."}
+      </div>
+    </section>
+  );
+}
+
+function WeatherInfo({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="min-w-0 rounded-xl bg-[#0A0A0A] p-2">
+      <div className="flex justify-center text-[#555555] [&_svg]:h-4 [&_svg]:w-4">{icon}</div>
+      <div className="mt-2 truncate text-center text-[10px] font-bold uppercase text-[#555555]">
+        {label}
+      </div>
+      <div className="mt-1 truncate text-center text-[13px] font-bold text-white">{value}</div>
+    </div>
+  );
+}
+
+function weatherIcon(icon: string) {
+  if (/rain|drizzle|thunder/i.test(icon))
+    return <CloudRain className="h-6 w-6" strokeWidth={1.7} />;
+  if (/clear|sun/i.test(icon)) return <Sun className="h-6 w-6" strokeWidth={1.7} />;
+  return <Cloud className="h-6 w-6" strokeWidth={1.7} />;
+}
+
+function weatherRecommendation(temp: number, rain: number) {
+  if (rain > 50) return "🌧 Chuva provável — Considere treino indoor";
+  if (temp < 15) return "🧤 Frio — Vista camadas, ritmo mais lento no início";
+  if (temp <= 25) return "✅ Clima ideal para treinar!";
+  if (temp <= 32) return "☀️ Quente — Hidrate-se bem, reduza o pace";
+  return "🌡 Muito quente — Prefira horários frescos";
+}
+
+function fallbackForecast(): WeatherDay[] {
+  return ["Hoje", "Amanhã", "Depois", "Sexta"].map((label) => ({ label, icon: "Clouds", max: 0 }));
+}
+
+function buildForecast(
+  list: Array<{
+    dt_txt?: string;
+    main?: { temp_max?: number };
+    weather?: Array<{ main?: string }>;
+  }>,
+): WeatherDay[] {
+  const byDay = new Map<string, WeatherDay>();
+  list.forEach((item) => {
+    if (!item.dt_txt) return;
+    const date = new Date(item.dt_txt.replace(" ", "T"));
+    const key = date.toISOString().slice(0, 10);
+    const label = date.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "");
+    const existing = byDay.get(key);
+    const max = Math.round(item.main?.temp_max ?? 0);
+    byDay.set(key, {
+      label: byDay.size === 0 ? "Hoje" : capitalize(label),
+      icon: item.weather?.[0]?.main ?? existing?.icon ?? "Clouds",
+      max: Math.max(existing?.max ?? -99, max),
+    });
+  });
+  return Array.from(byDay.values()).slice(0, 4);
+}
+
+function getWeatherCoords(city: string): Promise<{ lat: number; lon: number } | null> {
+  return new Promise((resolve) => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      resolve(cityCoords(city));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve({ lat: position.coords.latitude, lon: position.coords.longitude }),
+      () => resolve(cityCoords(city)),
+      { enableHighAccuracy: false, timeout: 2500, maximumAge: 1000 * 60 * 30 },
+    );
+  });
+}
+
+function cityCoords(city: string) {
+  if (/rio/i.test(city)) return { lat: -22.9068, lon: -43.1729 };
+  if (/belo/i.test(city)) return { lat: -19.9167, lon: -43.9345 };
+  if (/curitiba/i.test(city)) return { lat: -25.4284, lon: -49.2733 };
+  return { lat: -23.5505, lon: -46.6333 };
+}
+
+function capitalize(value: string) {
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : value;
 }
