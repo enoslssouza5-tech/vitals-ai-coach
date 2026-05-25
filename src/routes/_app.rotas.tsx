@@ -1,220 +1,121 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { HeroHeader } from "@/components/HeroHeader";
-import { gerarTextoAnthropic } from "@/lib/anthropic-client";
-import {
-  formatarDataLonga,
-  kmTreino,
-  lerPerfil,
-  lerRecuperacao,
-  minutosMelhorados,
-  nomeModalidade,
-  obterClimaAtual,
-  pontosDoTreino,
-  rotasSimilares,
-  type ClimaAtual,
-  type Coordenada,
-  type TreinoComRota,
-} from "@/lib/pulse-data";
+import { useMemo, useState } from "react";
+import { GoogleMapView } from "@/components/GoogleMapView";
+import { AppScreen, DesignCard, PageActionHeader, SectionTitle } from "@/components/PulseUI";
+import { demoPath } from "@/lib/pulse-design-data";
+import { kmTreino, pontosDoTreino, type TreinoComRota } from "@/lib/pulse-data";
 import { listarTreinos } from "@/lib/treino-history";
-import { Map, Navigation, Sparkles } from "lucide-react";
-import { motion } from "framer-motion";
-import "leaflet/dist/leaflet.css";
-import type { Map as LeafletMap, Polyline } from "leaflet";
+import { MapPin, Navigation, Star, Users } from "lucide-react";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/rotas")({ component: Rotas });
 
+const rotasVivas = [
+  { nome: "Volta do Parque", distancia: "5,2 km", atletas: 18, tag: "Fácil" },
+  { nome: "Subida Forte", distancia: "8,7 km", atletas: 9, tag: "Moderado" },
+  { nome: "Longão de Domingo", distancia: "12,4 km", atletas: 14, tag: "Grupo" },
+];
+
 function Rotas() {
-  const mapRef = useRef<HTMLDivElement>(null);
-  const leafletRef = useRef<{ L: typeof import("leaflet"); map: LeafletMap } | null>(null);
-  const lineRef = useRef<Polyline | null>(null);
-  const [selected, setSelected] = useState<TreinoComRota | null>(null);
-  const [suggestion, setSuggestion] = useState("");
-  const [loadingSuggestion, setLoadingSuggestion] = useState(false);
-  const [clima, setClima] = useState<ClimaAtual | null>(null);
-  const perfil = useMemo(() => lerPerfil(), []);
-  const recuperacao = useMemo(() => lerRecuperacao().at(-1), []);
   const treinos = useMemo(() => listarTreinos() as TreinoComRota[], []);
   const rotas = useMemo(
     () => treinos.filter((treino) => pontosDoTreino(treino).length >= 2),
     [treinos],
   );
-
-  useEffect(() => {
-    let cleanup: (() => void) | undefined;
-    async function iniciarMapa() {
-      if (!mapRef.current || leafletRef.current) return;
-      const L = await import("leaflet");
-      const centro = await obterCentroAtual();
-      const map = L.map(mapRef.current, { zoomControl: false }).setView(centro, 14);
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: "&copy; OpenStreetMap",
-      }).addTo(map);
-      L.circleMarker(centro, {
-        radius: 7,
-        color: "#fff",
-        weight: 2,
-        fillColor: "#22d3a8",
-        fillOpacity: 1,
-      }).addTo(map);
-      leafletRef.current = { L, map };
-      cleanup = () => map.remove();
-    }
-    iniciarMapa();
-    return () => cleanup?.();
-  }, []);
-
-  useEffect(() => {
-    obterClimaAtual()
-      .then(setClima)
-      .catch(() => undefined);
-  }, []);
-
-  useEffect(() => {
-    if (!selected || !leafletRef.current) return;
-    const { L, map } = leafletRef.current;
-    const pontos = pontosDoTreino(selected);
-    if (lineRef.current) lineRef.current.remove();
-    lineRef.current = L.polyline(pontos, {
-      color: "#22d3a8",
-      weight: 5,
-      opacity: 0.95,
-      lineCap: "round",
-      lineJoin: "round",
-    }).addTo(map);
-    map.fitBounds(lineRef.current.getBounds(), { padding: [24, 24] });
-  }, [selected]);
-
-  const sugerirRota = async () => {
-    setLoadingSuggestion(true);
-    const mediaKm = treinos.length
-      ? treinos.reduce((sum, t) => sum + kmTreino(t), 0) / treinos.length
-      : 5;
-    const fallback = `Rota ideal: ${Math.max(3, Math.round(mediaKm))} km em terreno plano.\nPrefira antes das 9h, com ritmo confortável.\nBoa escolha para evoluir sem pesar na recuperação.`;
-    const texto = await gerarTextoAnthropic({
-      system:
-        "Você é um coach de corrida. Sugira uma rota em texto (sem coordenadas): distância ideal, tipo de terreno, horário recomendado e motivo. Máximo 4 linhas. Responda em português.",
-      prompt: JSON.stringify({
-        clima,
-        recuperacao,
-        modalidadePreferida: perfil.modalidadePreferida,
-        mediaKm,
-      }),
-      fallback,
-    });
-    setSuggestion(texto);
-    setLoadingSuggestion(false);
-  };
+  const [selected, setSelected] = useState<TreinoComRota | null>(rotas[0] ?? null);
+  const path = selected ? pontosDoTreino(selected) : demoPath;
 
   return (
-    <div>
-      <HeroHeader image="cycling" title="ROTAS" subtitle="SUAS DESCOBERTAS E MAPAS" height="30vh" />
+    <AppScreen>
+      <PageActionHeader title="Rotas" />
 
-      <motion.div
-        className="px-5 space-y-5 pb-28 -mt-4 relative z-10 select-none"
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
-      >
-        <motion.div className="glass-card overflow-hidden animate-fade-in" variants={cardVariants}>
-          <div className="relative h-[60vh] min-h-[360px]">
-            <div
-              ref={mapRef}
-              className="h-full w-full bg-card/50"
-              aria-label="Mapa principal de rotas"
-            />
-            <div className="absolute top-4 left-4 right-4 z-[400] flex gap-2">
+      <div className="space-y-5">
+        <DesignCard className="overflow-hidden p-0">
+          <GoogleMapView
+            paths={[path]}
+            markers={[
+              { position: path[0], kind: "start" },
+              { position: path[path.length - 1], kind: "end" },
+            ]}
+            className="h-[360px] bg-[#0A0A0A]"
+            defaultMode="hybrid"
+            strokeWeight={4}
+            ariaLabel="Mapa de rotas"
+          />
+        </DesignCard>
+
+        <DesignCard>
+          <SectionTitle title="Descobertas da comunidade" action="Ver todas" />
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            {rotasVivas.map((rota) => (
               <button
-                onClick={sugerirRota}
-                disabled={loadingSuggestion}
-                aria-label="Sugerir rota para hoje"
-                className="h-12 flex-1 rounded-2xl bg-primary text-primary-foreground font-black tracking-widest text-xs flex items-center justify-center gap-2 active:scale-[0.97] transition disabled:opacity-60"
+                key={rota.nome}
+                onClick={() => toast.success(`${rota.nome} selecionada.`)}
+                className="min-w-[220px] rounded-xl border border-white/[0.06] bg-[#0A0A0A] p-4 text-left"
               >
-                <Sparkles className="h-4 w-4" />{" "}
-                {loadingSuggestion ? "GERANDO..." : "SUGERIR ROTA PARA HOJE"}
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-lg font-bold text-white">{rota.nome}</div>
+                    <div className="mt-1 text-sm text-[#888888]">{rota.distancia}</div>
+                  </div>
+                  <span className="quality-badge">{rota.tag}</span>
+                </div>
+                <div className="mt-5 flex items-center gap-2 text-sm text-[#888888]">
+                  <Users className="h-4 w-4 text-[#C8FF00]" /> {rota.atletas} atletas hoje
+                </div>
+                <div className="mt-3 flex text-[#C8FF00]">
+                  {Array.from({ length: 5 }).map((_, index) => (
+                    <Star key={index} className="h-4 w-4 fill-current" />
+                  ))}
+                </div>
               </button>
-            </div>
-            {suggestion && (
-              <div className="absolute bottom-4 left-4 right-4 z-[400] glass-card p-4">
-                <p className="text-xs font-bold leading-relaxed whitespace-pre-line">
-                  {suggestion}
-                </p>
-              </div>
-            )}
+            ))}
           </div>
-        </motion.div>
+        </DesignCard>
 
-        <motion.div className="glass-card p-5" variants={cardVariants}>
-          <div className="athletic-label tracking-widest text-[10px] mb-4">Rotas salvas</div>
-          {rotas.length === 0 ? (
-            <div className="text-center py-8">
-              <div className="icon-circle h-14 w-14 mx-auto mb-4 glow-primary-sm">
-                <Map className="h-7 w-7 text-primary-light" />
-              </div>
-              <p className="text-xs text-muted-foreground leading-relaxed font-semibold">
-                Nenhuma rota com coordenadas foi encontrada no histórico local. Quando houver
-                treinos salvos com pontos GPS, eles aparecerão aqui.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {rotas.map((treino) => {
-                const similares = rotasSimilares(treino, rotas);
-                const ganho = minutosMelhorados(similares);
-                return (
-                  <button
-                    key={treino.id}
-                    onClick={() => setSelected(treino)}
-                    className="w-full glass-card p-4 text-left active:scale-[0.98] transition animate-fade-in"
-                    aria-label={`Ver rota de ${nomeModalidade(treino.modalidade)}`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-black uppercase">
-                          {nomeModalidade(treino.modalidade)}
-                        </p>
-                        <p className="text-[11px] text-muted-foreground font-semibold mt-1">
-                          {formatarDataLonga(treino.data)} · {kmTreino(treino).toFixed(2)} km
-                        </p>
-                      </div>
-                      <Navigation className="h-5 w-5 text-primary-light" />
+        <DesignCard>
+          <SectionTitle title="Rotas salvas" />
+          <div className="divide-y divide-white/[0.06]">
+            {(rotas.length ? rotas : [null, null]).map((treino, index) => {
+              const itemPath = treino ? pontosDoTreino(treino) : demoPath;
+              return (
+                <button
+                  key={treino?.id ?? index}
+                  onClick={() => treino && setSelected(treino)}
+                  className="flex w-full items-center gap-4 py-4 text-left first:pt-0 last:pb-0"
+                >
+                  <GoogleMapView
+                    paths={[itemPath]}
+                    className="h-20 w-28 shrink-0 rounded-lg bg-[#0A0A0A]"
+                    interactive={false}
+                    showControls={false}
+                    defaultMode="roadmap"
+                    strokeWeight={3}
+                    ariaLabel="Prévia da rota"
+                  />
+                  <div className="flex-1">
+                    <div className="text-lg font-bold text-white">
+                      {index === 0 ? "5km • Rodagem" : "10km • Longão"}
                     </div>
-                    {ganho > 0 && (
-                      <div className="mt-3 inline-flex rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-[10px] font-black text-primary-light">
-                        📈 Você melhorou {ganho} min desde a primeira vez
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </motion.div>
-      </motion.div>
-    </div>
+                    <div className="mt-1 text-sm text-[#888888]">
+                      {treino
+                        ? `${kmTreino(treino).toFixed(2)} km`
+                        : index === 0
+                          ? "5,02 km"
+                          : "10,01 km"}
+                    </div>
+                  </div>
+                  {index === 0 ? (
+                    <Navigation className="h-5 w-5 text-[#C8FF00]" />
+                  ) : (
+                    <MapPin className="h-5 w-5 text-[#555555]" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </DesignCard>
+      </div>
+    </AppScreen>
   );
 }
-
-async function obterCentroAtual(): Promise<Coordenada> {
-  return new Promise((resolve) => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) {
-      resolve([-23.5505, -46.6333]);
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => resolve([pos.coords.latitude, pos.coords.longitude]),
-      () => resolve([-23.5505, -46.6333]),
-      { timeout: 5000, maximumAge: 600_000 },
-    );
-  });
-}
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
-};
-const cardVariants = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } },
-};

@@ -1,4 +1,4 @@
-// Simulação de IA baseada em regras (MVP sem custos de API)
+// Simulação do Pulse Coach baseada em regras (MVP sem custos de API)
 export interface HealthSnapshot {
   sleep_hours?: number | null;
   sleep_quality?: number | null;
@@ -43,9 +43,12 @@ export function generateDailyInsights(opts: {
   const { health, weather, recovery } = opts;
   const alerts: string[] = [];
 
-  if (weather.temp > 32) alerts.push(`Temperatura elevada (${weather.temp}°C). Hidrate-se bem e reduza a intensidade.`);
-  if (weather.humidity > 80) alerts.push("Umidade alta — esforço cardiovascular será maior que o usual.");
-  if (weather.rainSoon) alerts.push("🌧️ Risco de chuva nas próximas horas. Treine agora ou após o ciclo.");
+  if (weather.temp > 32)
+    alerts.push(`Temperatura elevada (${weather.temp}°C). Hidrate-se bem e reduza a intensidade.`);
+  if (weather.humidity > 80)
+    alerts.push("Umidade alta — esforço cardiovascular será maior que o usual.");
+  if (weather.rainSoon)
+    alerts.push("🌧️ Risco de chuva nas próximas horas. Treine agora ou após o ciclo.");
 
   let headline = "Dia equilibrado para treinar.";
   let recommendation = "Treino moderado de 30–45 min em Zona 2.";

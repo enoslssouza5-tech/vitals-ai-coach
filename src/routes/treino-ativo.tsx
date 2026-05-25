@@ -13,10 +13,9 @@ import {
   salvarTreino,
 } from "@/lib/treino-history";
 import { gerarAnaliseCoach } from "@/lib/coach.functions";
+import { snapToRoad, type LatLngTuple } from "@/lib/google-maps";
 
-const RouteMap = lazy(() =>
-  import("@/components/RouteMap").then((m) => ({ default: m.RouteMap })),
-);
+const RouteMap = lazy(() => import("@/components/RouteMap").then((m) => ({ default: m.RouteMap })));
 
 const search = z.object({ type: z.string().default("running") });
 
@@ -41,16 +40,18 @@ function TreinoAtivo() {
   const startedAt = useRef<Date | null>(null);
 
   // GPS
-  const [pontos, setPontos] = useState<[number, number][]>([]);
+  const [pontos, setPontos] = useState<LatLngTuple[]>([]);
   const [distancia, setDistancia] = useState(0); // metros
   const [gpsErro, setGpsErro] = useState<string | null>(null);
+  const [heading, setHeading] = useState(0);
   const watchId = useRef<number | null>(null);
-  const ultimoPonto = useRef<[number, number] | null>(null);
+  const ultimoPonto = useRef<LatLngTuple | null>(null);
+  const ultimoSampleMs = useRef(0);
 
   // FC simulada
   const [hr, setHr] = useState(135);
 
-  // IA
+  // Coach
   const [analise, setAnalise] = useState<string | null>(null);
   const [analiseLoading, setAnaliseLoading] = useState(false);
 
@@ -84,8 +85,15 @@ function TreinoAtivo() {
       return;
     }
     const id = navigator.geolocation.watchPosition(
-      (pos) => {
-        const p: [number, number] = [pos.coords.latitude, pos.coords.longitude];
+      async (pos) => {
+        const now = Date.now();
+        if (now - ultimoSampleMs.current < 1000) return;
+        ultimoSampleMs.current = now;
+
+        const p: LatLngTuple = [pos.coords.latitude, pos.coords.longitude];
+        if (typeof pos.coords.heading === "number" && isFinite(pos.coords.heading)) {
+          setHeading(pos.coords.heading);
+        }
         if (ultimoPonto.current) {
           const d = haversine(ultimoPonto.current, p);
           if (d > 1 && d < 100) {
@@ -93,7 +101,13 @@ function TreinoAtivo() {
           }
         }
         ultimoPonto.current = p;
-        setPontos((arr) => [...arr, p]);
+        setPontos((arr) => {
+          const next = [...arr, p];
+          void snapToRoad(next).then((snapped) => {
+            if (snapped.length >= next.length) setPontos(snapped);
+          });
+          return next;
+        });
         setGpsErro(null);
       },
       (err) => {
@@ -103,7 +117,12 @@ function TreinoAtivo() {
           setGpsErro("📍 Sinal de GPS fraco. Tente em área aberta.");
         }
       },
-      { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 5000,
+        distanceFilter: 3,
+      } as PositionOptions & { distanceFilter: number },
     );
     watchId.current = id;
     return () => {
@@ -124,8 +143,7 @@ function TreinoAtivo() {
     setAnaliseLoading(true);
     try {
       const km = distancia / 1000;
-      const pace =
-        usaGPS && km > 0 ? seconds / 60 / km : null;
+      const pace = usaGPS && km > 0 ? seconds / 60 / km : null;
       const ritmoStr =
         pace != null && isFinite(pace)
           ? `${Math.floor(pace)}:${String(Math.round((pace % 1) * 60)).padStart(2, "0")}/km`
@@ -169,6 +187,7 @@ function TreinoAtivo() {
       ritmoMedio: ritmoStr,
       fcMedia: hr,
       analiseIA: analise ?? undefined,
+      coordenadas: pontos,
     });
     toast.success("✅ Treino salvo com sucesso!");
     navigate({ to: "/treino" });
@@ -181,6 +200,7 @@ function TreinoAtivo() {
     setDistancia(0);
     setPontos([]);
     ultimoPonto.current = null;
+    ultimoSampleMs.current = 0;
     setAnalise(null);
     setRunning(true);
   };
@@ -238,7 +258,10 @@ function TreinoAtivo() {
         <div className="glass-card p-6 mt-4">
           <div className="grid grid-cols-2 gap-y-5 gap-x-3">
             <Stat label="MODALIDADE" value={info.label} />
-            <Stat label="DATA" value={(startedAt.current ?? new Date()).toLocaleDateString("pt-BR")} />
+            <Stat
+              label="DATA"
+              value={(startedAt.current ?? new Date()).toLocaleDateString("pt-BR")}
+            />
             <Stat label="DURAÇÃO TOTAL" value={fmtDuracao(seconds)} />
             <Stat label="DISTÂNCIA" value={km.toFixed(2)} unit="km" />
             {usaGPS && <Stat label="RITMO MÉDIO" value={ritmoStr} unit="/km" />}
@@ -249,12 +272,12 @@ function TreinoAtivo() {
 
         <div className="glass-card p-5 mt-5 border border-warning/30">
           <div className="flex items-center gap-1.5 text-xs text-warning font-black tracking-widest uppercase mb-3">
-            🏆 ANÁLISE DO COACH IA
+            🏆 ANÁLISE DO PULSE COACH
           </div>
           {analiseLoading ? (
             <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
               <Sparkles className="h-4 w-4 animate-pulse" />
-              Analisando seu desempenho...
+              Avaliando sua semana...
             </div>
           ) : (
             <p className="text-sm leading-relaxed font-semibold">{analise}</p>
@@ -294,7 +317,12 @@ function TreinoAtivo() {
       <div className="relative w-full" style={{ height: "38vh" }}>
         {usaGPS ? (
           <Suspense fallback={<div className="w-full h-full bg-card/50" />}>
-            <RouteMap pontos={pontos} className="w-full h-full" />
+            <RouteMap
+              pontos={pontos}
+              className="w-full h-full"
+              distanceMeters={distancia}
+              heading={heading}
+            />
           </Suspense>
         ) : (
           <div className="w-full h-full bg-card/50 flex items-center justify-center">
@@ -315,6 +343,14 @@ function TreinoAtivo() {
             {usaGPS ? "GRAVANDO GPS" : "EM ATIVIDADE"}
           </span>
         </div>
+
+        {usaGPS && (
+          <div className="absolute bottom-4 left-5 right-5 z-[400] rounded-2xl bg-background/85 border border-border/70 p-3 grid grid-cols-3 gap-2 text-center">
+            <MiniMapStat label="KM" value={km.toFixed(2)} />
+            <MiniMapStat label="PACE" value={ritmoStr} />
+            <MiniMapStat label="TEMPO" value={fmtDuracao(seconds)} />
+          </div>
+        )}
       </div>
 
       {gpsErro && usaGPS && (
@@ -325,21 +361,9 @@ function TreinoAtivo() {
 
       <div className="flex-1 px-5 py-6 flex flex-col">
         <div className="grid grid-cols-2 gap-4">
-          <BigStat
-            label="TEMPO"
-            value={fmtDuracao(seconds)}
-            timerRole
-          />
-          <BigStat
-            label="DISTÂNCIA"
-            value={usaGPS ? km.toFixed(2) : "--"}
-            unit="km"
-          />
-          <BigStat
-            label="RITMO"
-            value={usaGPS ? ritmoStr : "--:--"}
-            unit="/km"
-          />
+          <BigStat label="TEMPO" value={fmtDuracao(seconds)} timerRole />
+          <BigStat label="DISTÂNCIA" value={usaGPS ? km.toFixed(2) : "--"} unit="km" />
+          <BigStat label="RITMO" value={usaGPS ? ritmoStr : "--:--"} unit="/km" />
           <BigStat label="CALORIAS" value={String(calorias)} unit="kcal" />
         </div>
 
@@ -393,6 +417,17 @@ function Stat({ label, value, unit }: { label: string; value: string; unit?: str
   );
 }
 
+function MiniMapStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-[9px] text-muted-foreground font-black tracking-widest uppercase">
+        {label}
+      </div>
+      <div className="mt-1 text-sm font-black font-mono text-primary-light">{value}</div>
+    </div>
+  );
+}
+
 function BigStat({
   label,
   value,
@@ -414,9 +449,7 @@ function BigStat({
       </div>
       <div className="mt-2 flex items-baseline gap-1">
         <span className="text-3xl font-black font-mono leading-none tracking-tight">{value}</span>
-        {unit && (
-          <span className="text-xs font-black text-muted-foreground uppercase">{unit}</span>
-        )}
+        {unit && <span className="text-xs font-black text-muted-foreground uppercase">{unit}</span>}
       </div>
     </div>
   );

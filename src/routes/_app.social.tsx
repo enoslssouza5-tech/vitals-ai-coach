@@ -1,388 +1,366 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type React from "react";
-import { useMemo, useState } from "react";
-import { HeroHeader } from "@/components/HeroHeader";
+import { useState } from "react";
 import {
-  diasAtras,
-  formatarDataCurta,
-  kmTreino,
-  lerJSON,
-  lerPerfil,
-  nomeModalidade,
-  salvarJSON,
-} from "@/lib/pulse-data";
-import { listarTreinos, type TreinoRegistro } from "@/lib/treino-history";
-import { Download, Heart, Share2, Trophy } from "lucide-react";
-import { motion } from "framer-motion";
+  Activity,
+  Bell,
+  Camera,
+  CheckCircle2,
+  Flame,
+  Heart,
+  MessageCircle,
+  MoreHorizontal,
+  Mountain,
+  Plus,
+  Share2,
+  Timer,
+  Trophy,
+  UserPlus,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_app/social")({ component: Social });
 
-type FeedItem = {
-  id: string;
-  nome: string;
-  modalidade: string;
-  distanciaKm: number;
-  data: string;
-  mock?: boolean;
-};
-
-const amigos = [
-  { nome: "Ana Ribeiro", kmSemana: 18.4 },
-  { nome: "Bruno Costa", kmSemana: 24.1 },
-  { nome: "Camila Torres", kmSemana: 12.8 },
-];
-
-const eventos = [
+const posts = [
   {
-    id: "run-sp-5k",
-    nome: "Pulse Night Run",
-    data: "2026-06-06",
-    cidade: "São Paulo",
-    modalidade: "Corrida",
-    distancia: "5 km",
-    base: 42,
+    name: "Juliana Costa",
+    location: "São Paulo, SP",
+    time: "2h",
+    caption:
+      "Grande treino hoje! Ritmo forte do início ao fim. Disciplina é o que constrói resultado. 💪",
+    type: "Corrida",
+    period: "Manhã",
+    distance: "10,24",
+    pace: "5’08” /km",
+    duration: "52:34",
+    elevation: "102 m",
+    calories: "756",
+    likes: 32,
+    comments: 4,
+    avatar: "juliana",
+    route: "M66 170 L90 126 L122 118 L145 50 L169 44 L158 95 L174 152 L126 135 L100 184 Z",
   },
   {
-    id: "bike-regiao",
-    nome: "Giro da Região",
-    data: "2026-06-14",
-    cidade: "Campinas",
-    modalidade: "Ciclismo",
-    distancia: "30 km",
-    base: 31,
+    name: "Pedro Henrique",
+    location: "Rio de Janeiro, RJ",
+    time: "4h",
+    caption: "Longão de sábado concluído! Boas sensações o tempo todo.",
+    type: "Corrida",
+    period: "Longão",
+    distance: "21,37",
+    pace: "5’21” /km",
+    duration: "1:54:32",
+    elevation: "215 m",
+    calories: "1.482",
+    likes: 45,
+    comments: 8,
+    avatar: "pedro",
+    route: "M46 56 L58 76 L102 80 L136 92 L164 125 L130 147 L92 139 L62 158",
   },
   {
-    id: "trilha-br",
-    nome: "Trilha Forte BR",
-    data: "2026-06-21",
-    cidade: "Atibaia",
-    modalidade: "Trilha",
-    distancia: "9 km",
-    base: 18,
+    name: "Marcos Vinicius",
+    location: "Belo Horizonte, MG",
+    time: "6h",
+    caption: "Dia de treino regenerativo. Corrida leve + mobilidade.",
+    type: "Corrida",
+    period: "Leve",
+    distance: "6,12",
+    pace: "5’48” /km",
+    duration: "35:30",
+    elevation: "74 m",
+    calories: "418",
+    likes: 18,
+    comments: 2,
+    avatar: "marcos",
+    route: "M48 152 L76 108 L102 118 L132 70 L158 92 L130 146",
   },
 ];
 
 function Social() {
-  const perfil = useMemo(() => lerPerfil(), []);
-  const treinos = useMemo(() => listarTreinos(), []);
-  const [likes, setLikes] = useState<Record<string, number>>(() =>
-    lerJSON("pulse_social_likes", {}),
-  );
-  const [joined, setJoined] = useState<string[]>(() => lerJSON("pulse_comunidades", []));
-  const [duelo, setDuelo] = useState<string>(() => lerJSON("pulse_duelo_amigo", ""));
-  const [presencas, setPresencas] = useState<string[]>(() => lerJSON("pulse_eventos", []));
-  const [share, setShare] = useState<FeedItem | null>(null);
-
-  const feed = useMemo<FeedItem[]>(() => {
-    const locais = treinos.slice(0, 8).map((treino) => ({
-      id: treino.id,
-      nome: perfil.nome || "Você",
-      modalidade: nomeModalidade(treino.modalidade),
-      distanciaKm: kmTreino(treino),
-      data: treino.data,
-    }));
-    const mocks: FeedItem[] = [
-      {
-        id: "mock-ana",
-        nome: "Ana Ribeiro",
-        modalidade: "Corrida",
-        distanciaKm: 6.2,
-        data: new Date(Date.now() - 3_600_000).toISOString(),
-        mock: true,
-      },
-      {
-        id: "mock-bruno",
-        nome: "Bruno Costa",
-        modalidade: "Ciclismo",
-        distanciaKm: 32.5,
-        data: new Date(Date.now() - 8_600_000).toISOString(),
-        mock: true,
-      },
-      {
-        id: "mock-camila",
-        nome: "Camila Torres",
-        modalidade: "Trilha",
-        distanciaKm: 9.1,
-        data: new Date(Date.now() - 22_600_000).toISOString(),
-        mock: true,
-      },
-    ];
-    return [...locais, ...mocks].sort(
-      (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime(),
-    );
-  }, [perfil.nome, treinos]);
-
-  const comunidades = [
-    `Corredores de ${perfil.cidade || "sua cidade"}`,
-    "Ciclistas da Região",
-    "Trilheiros BR",
-  ];
-  const kmUsuarioSemana = treinos.reduce((sum, treino) => sum + kmTreino(treino), 0);
-  const adversario = amigos.find((a) => a.nome === duelo);
-
-  const curtir = (id: string) => {
-    const next = { ...likes, [id]: (likes[id] ?? 0) + 1 };
-    setLikes(next);
-    salvarJSON("pulse_social_likes", next);
-  };
-
-  const entrar = (grupo: string) => {
-    const next = joined.includes(grupo) ? joined : [...joined, grupo];
-    setJoined(next);
-    salvarJSON("pulse_comunidades", next);
-    toast.success("Você entrou na comunidade.");
-  };
-
-  const confirmar = (id: string) => {
-    const next = presencas.includes(id) ? presencas : [...presencas, id];
-    setPresencas(next);
-    salvarJSON("pulse_eventos", next);
-    toast.success("Presença confirmada.");
-  };
+  const [activeTab, setActiveTab] = useState("Feed");
+  const [liked, setLiked] = useState<Record<string, boolean>>({ Juliana: true });
 
   return (
-    <div>
-      <HeroHeader
-        image="running"
-        title="COMUNIDADE"
-        subtitle="AMIGOS E DESAFIOS COLETIVOS"
-        height="30vh"
-      />
+    <main className="mx-auto min-h-screen w-full max-w-[430px] overflow-x-hidden bg-[#050505] px-4 pt-[52px] pb-[96px] text-white">
+      <header className="mb-7 flex min-w-0 items-center justify-between gap-3">
+        <h1 className="min-w-0 text-[clamp(30px,8vw,40px)] font-medium tracking-[-0.04em]">
+          Social
+        </h1>
+        <div className="flex shrink-0 items-center gap-3">
+          <button
+            className="grid h-11 w-11 shrink-0 place-items-center"
+            aria-label="Adicionar amigo"
+          >
+            <UserPlus className="h-8 w-8" strokeWidth={1.8} />
+          </button>
+          <button
+            className="relative grid h-11 w-11 shrink-0 place-items-center"
+            aria-label="Notificações"
+          >
+            <Bell className="h-8 w-8" strokeWidth={1.8} />
+            <span className="absolute right-1.5 top-1.5 h-3 w-3 rounded-full bg-[#D7FF1F]" />
+          </button>
+        </div>
+      </header>
 
-      <motion.div
-        className="px-5 space-y-5 pb-28 -mt-4 relative z-10 select-none"
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
-      >
-        <Section title="Feed de atividades">
-          <div className="space-y-3">
-            {feed.map((item) => (
-              <div key={item.id} className="glass-card p-4 animate-fade-in">
-                <div className="flex items-start gap-3">
-                  <div className="h-12 w-12 rounded-full bg-primary text-primary-foreground grid place-items-center font-black glow-primary-sm shrink-0">
-                    {item.nome[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-black text-sm">{item.nome}</p>
-                    <p className="text-xs text-muted-foreground font-semibold mt-1">
-                      {item.modalidade} · {item.distanciaKm.toFixed(2)} km · {diasAtras(item.data)}
-                    </p>
-                    <div className="flex gap-2 mt-4">
-                      <button
-                        onClick={() => curtir(item.id)}
-                        aria-label={`Curtir atividade de ${item.nome}`}
-                        className="h-12 px-4 rounded-xl glass-card text-xs font-black flex items-center gap-2 active:scale-[0.97] transition"
-                      >
-                        <Heart className="h-4 w-4 text-primary-light" />{" "}
-                        {likes[item.id] ?? (item.mock ? 7 : 0)}
-                      </button>
-                      <button
-                        onClick={() => setShare(item)}
-                        aria-label={`Compartilhar atividade de ${item.nome}`}
-                        className="h-12 px-4 rounded-xl glass-card text-xs font-black flex items-center gap-2 active:scale-[0.97] transition"
-                      >
-                        <Share2 className="h-4 w-4 text-primary-light" /> COMPARTILHAR
-                      </button>
-                    </div>
-                  </div>
+      <nav className="mb-4 grid grid-cols-3 border-b border-[#1A1F2B]">
+        {["Feed", "Seguindo", "Clubes"].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setActiveTab(tab)}
+            className={`min-w-0 truncate pb-4 text-center text-[clamp(18px,5vw,24px)] font-medium first:text-left last:text-right ${
+              activeTab === tab ? "border-b-2 border-[#D7FF1F] text-[#D7FF1F]" : "text-[#9CA3AF]"
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </nav>
+
+      <CreatePost />
+
+      <div className="mt-6 space-y-5">
+        {posts.map((post) => (
+          <article
+            key={post.name}
+            className="rounded-[24px] border border-[#1A1F2B] bg-[#0B0F17] p-4"
+          >
+            <div className="flex items-start gap-3">
+              <Avatar kind={post.avatar} size="md" />
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 items-center gap-2">
+                  <h2 className="truncate text-[clamp(20px,5vw,24px)] font-semibold text-white">
+                    {post.name}
+                  </h2>
+                  <span className="rounded-md border border-[#D7FF1F]/50 px-2 py-0.5 text-xs font-bold text-[#D7FF1F]">
+                    PRO
+                  </span>
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[#D7FF1F]" />
                 </div>
+                <p className="mt-1 truncate text-[clamp(13px,3vw,15px)] text-[#9CA3AF]">
+                  {post.location} • {post.time}
+                </p>
               </div>
-            ))}
-          </div>
-        </Section>
-
-        <Section title="Comunidades">
-          <div className="space-y-3">
-            {comunidades.map((grupo, index) => (
-              <div
-                key={grupo}
-                className="glass-card p-4 flex items-center justify-between gap-3 animate-fade-in"
-              >
-                <div>
-                  <p className="text-sm font-black">{grupo}</p>
-                  <p className="text-[11px] text-muted-foreground font-semibold">
-                    {420 + index * 137} membros
-                  </p>
-                </div>
-                <button
-                  onClick={() => entrar(grupo)}
-                  className="h-12 px-4 rounded-xl bg-primary text-primary-foreground text-xs font-black active:scale-[0.97] transition"
-                  aria-label={`Entrar em ${grupo}`}
-                >
-                  {joined.includes(grupo) ? "MEMBRO" : "ENTRAR"}
-                </button>
-              </div>
-            ))}
-          </div>
-        </Section>
-
-        <Section title="Duelo semanal">
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {amigos.map((amigo) => (
-              <button
-                key={amigo.nome}
-                onClick={() => {
-                  setDuelo(amigo.nome);
-                  salvarJSON("pulse_duelo_amigo", amigo.nome);
-                }}
-                className={`h-12 px-4 rounded-xl text-xs font-black whitespace-nowrap active:scale-[0.97] transition ${duelo === amigo.nome ? "bg-primary text-primary-foreground" : "glass-card text-muted-foreground"}`}
-                aria-label={`Desafiar ${amigo.nome}`}
-              >
-                {amigo.nome.split(" ")[0]}
+              <button aria-label="Mais opções">
+                <MoreHorizontal className="h-7 w-7 text-[#9CA3AF]" />
               </button>
-            ))}
-          </div>
-          {adversario && (
-            <div
-              className={`mt-4 glass-card p-4 ${adversario.kmSemana > kmUsuarioSemana ? "border-warning/40" : ""}`}
-            >
-              <div className="flex items-center gap-2 text-xs font-black text-primary-light tracking-widest uppercase mb-3">
-                <Trophy className="h-4 w-4" /> Placar ao vivo
+            </div>
+
+            <p className="mt-6 text-[clamp(18px,4.7vw,22px)] leading-snug text-[#D1D5DB]">
+              {post.caption}
+            </p>
+
+            <div className="mt-4 overflow-hidden rounded-[18px] border border-[#1A1F2B]">
+              <div className="grid grid-cols-[104px_minmax(0,1fr)] min-[420px]:grid-cols-[clamp(128px,34vw,184px)_minmax(0,1fr)]">
+                <RouteThumb route={post.route} />
+                <div className="min-w-0 p-3 min-[420px]:p-4">
+                  <p className="truncate text-[clamp(15px,4vw,18px)] text-[#9CA3AF]">
+                    {post.type} • {post.period}
+                  </p>
+                  <div className="mt-2 whitespace-nowrap text-[clamp(28px,7vw,40px)] font-semibold tracking-[-0.04em]">
+                    {post.distance}
+                    <span className="ml-1 text-base font-medium">km</span>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-x-3 gap-y-3 min-[480px]:grid-cols-4">
+                    <ActivityMetric icon={<Timer />} value={post.pace} label="Ritmo médio" />
+                    <ActivityMetric icon={<Timer />} value={post.duration} label="Tempo" />
+                    <ActivityMetric
+                      icon={<Mountain />}
+                      value={post.elevation}
+                      label="Ganho de elev."
+                    />
+                    <ActivityMetric icon={<Flame />} value={post.calories} label="Calorias" />
+                  </div>
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <Placar
-                  nome="Você"
-                  km={kmUsuarioSemana}
-                  ativo={kmUsuarioSemana >= adversario.kmSemana}
+            </div>
+
+            <div className="mt-5 flex items-center gap-3">
+              <AvatarStack />
+              <div className="min-w-0 text-[clamp(13px,3vw,15px)] text-[#9CA3AF]">
+                <p className="truncate">Curtido por Lucas, Pedro e outras {post.likes} pessoas</p>
+                <p className="mt-1">{post.comments} comentários</p>
+              </div>
+            </div>
+
+            <div className="mt-5 border-t border-[#1A1F2B] pt-4">
+              <div className="grid grid-cols-3 gap-1">
+                <ActionButton
+                  active={liked[post.name]}
+                  icon={<Heart className={liked[post.name] ? "fill-current" : ""} />}
+                  label="Curtir"
+                  onClick={() =>
+                    setLiked((current) => ({ ...current, [post.name]: !current[post.name] }))
+                  }
                 />
-                <Placar
-                  nome={adversario.nome.split(" ")[0]}
-                  km={adversario.kmSemana}
-                  ativo={adversario.kmSemana > kmUsuarioSemana}
+                <ActionButton
+                  icon={<MessageCircle />}
+                  label="Comentar"
+                  onClick={() => toast.success("Comentário rápido aberto.")}
+                />
+                <ActionButton
+                  icon={<Share2 />}
+                  label="Compartilhar"
+                  onClick={() => toast.success("Post pronto para compartilhar.")}
                 />
               </div>
             </div>
-          )}
-        </Section>
-
-        <Section title="Eventos próximos">
-          <div className="space-y-3">
-            {eventos.map((evento) => (
-              <div key={evento.id} className="glass-card p-4 animate-fade-in">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-black">{evento.nome}</p>
-                    <p className="text-[11px] text-muted-foreground font-semibold mt-1">
-                      {formatarDataCurta(evento.data)} · {evento.cidade} · {evento.modalidade} ·{" "}
-                      {evento.distancia}
-                    </p>
-                    <p className="text-[10px] text-primary-light font-black mt-2">
-                      {evento.base + (presencas.includes(evento.id) ? 1 : 0)} confirmados
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => confirmar(evento.id)}
-                    className="h-12 px-3 rounded-xl bg-primary text-primary-foreground text-[10px] font-black active:scale-[0.97] transition"
-                    aria-label={`Confirmar presença em ${evento.nome}`}
-                  >
-                    {presencas.includes(evento.id) ? "CONFIRMADO" : "CONFIRMAR"}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Section>
-      </motion.div>
-
-      {share && <ShareDialog item={share} onClose={() => setShare(null)} />}
-    </div>
-  );
-}
-
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <motion.section className="glass-card p-5" variants={cardVariants}>
-      <div className="athletic-label tracking-widest text-[10px] mb-4">{title}</div>
-      {children}
-    </motion.section>
-  );
-}
-
-function Placar({ nome, km, ativo }: { nome: string; km: number; ativo: boolean }) {
-  return (
-    <div
-      className={`rounded-2xl p-4 ${ativo ? "bg-primary/20 border border-primary/30" : "bg-muted/20"}`}
-    >
-      <p className="text-[10px] text-muted-foreground font-black uppercase">{nome}</p>
-      <p className="text-2xl font-black font-mono mt-1">
-        {km.toFixed(1)}
-        <span className="text-xs text-muted-foreground ml-1">km</span>
-      </p>
-    </div>
-  );
-}
-
-function ShareDialog({ item, onClose }: { item: FeedItem; onClose: () => void }) {
-  const baixar = () => {
-    const canvas = document.createElement("canvas");
-    canvas.width = 900;
-    canvas.height = 1200;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.fillStyle = "#0B1023";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "#22d3ee";
-    ctx.font = "900 72px Arial";
-    ctx.fillText("PULSE", 72, 140);
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "900 56px Arial";
-    ctx.fillText(item.nome, 72, 300);
-    ctx.font = "900 96px Arial";
-    ctx.fillText(`${item.distanciaKm.toFixed(2)} KM`, 72, 500);
-    ctx.font = "700 42px Arial";
-    ctx.fillText(item.modalidade.toUpperCase(), 72, 610);
-    ctx.fillStyle = "#94a3b8";
-    ctx.font = "600 36px Arial";
-    ctx.fillText(
-      new Intl.DateTimeFormat("pt-BR", { dateStyle: "long" }).format(new Date(item.data)),
-      72,
-      700,
-    );
-    const link = document.createElement("a");
-    link.download = "pulse-atividade.png";
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-5">
-      <div className="glass-card p-5 w-full max-w-sm">
-        <div className="rounded-2xl p-5 border border-primary/30 bg-background">
-          <p className="text-primary-light font-black tracking-widest">PULSE</p>
-          <p className="mt-8 text-lg font-black">{item.nome}</p>
-          <p className="mt-3 text-4xl font-black font-mono">{item.distanciaKm.toFixed(2)} KM</p>
-          <p className="mt-2 text-xs text-muted-foreground font-black uppercase">
-            {item.modalidade} · {formatarDataCurta(item.data)}
-          </p>
-        </div>
-        <div className="grid grid-cols-2 gap-3 mt-4">
-          <button
-            onClick={baixar}
-            className="h-12 rounded-xl bg-primary text-primary-foreground text-xs font-black flex items-center justify-center gap-2 active:scale-[0.97] transition"
-            aria-label="Baixar card como imagem"
-          >
-            <Download className="h-4 w-4" /> BAIXAR
-          </button>
-          <button
-            onClick={onClose}
-            className="h-12 rounded-xl glass-card text-xs font-black active:scale-[0.97] transition"
-            aria-label="Fechar compartilhamento"
-          >
-            FECHAR
-          </button>
-        </div>
+          </article>
+        ))}
       </div>
+
+      <button
+        className="fixed bottom-[90px] right-5 z-30 grid h-[68px] w-[68px] place-items-center rounded-full bg-[#D7FF1F] text-black shadow-[0_0_42px_rgba(215,255,31,0.35)]"
+        aria-label="Criar post"
+      >
+        <Plus className="h-10 w-10" strokeWidth={2.2} />
+      </button>
+    </main>
+  );
+}
+
+function CreatePost() {
+  return (
+    <section className="rounded-[24px] border border-[#1A1F2B] bg-[#0B0F17] p-4">
+      <div className="flex items-center gap-4 border-b border-[#1A1F2B] pb-5">
+        <Avatar kind="runner" size="lg" online />
+        <button className="min-w-0 flex-1 truncate text-left text-[clamp(17px,4.8vw,22px)] text-[#9CA3AF]">
+          No que você está pensando?
+        </button>
+      </div>
+      <div className="grid grid-cols-3 divide-x divide-[#1A1F2B] pt-4">
+        <PostAction icon={<Activity />} label="Atividade" />
+        <PostAction icon={<Camera />} label="Foto" />
+        <PostAction icon={<Trophy />} label="Conquista" />
+      </div>
+    </section>
+  );
+}
+
+function PostAction({ icon, label }: { icon: React.ReactNode; label: string }) {
+  return (
+    <button className="flex h-10 min-w-0 items-center justify-center gap-1.5 text-[clamp(12px,3vw,14px)] text-[#D1D5DB]">
+      <span className="text-[#D1D5DB] [&_svg]:h-5 [&_svg]:w-5 [&_svg]:stroke-[1.7]">{icon}</span>
+      <span className="truncate">{label}</span>
+    </button>
+  );
+}
+
+function Avatar({ kind, size, online }: { kind: string; size: "md" | "lg"; online?: boolean }) {
+  const large = size === "lg";
+  return (
+    <div className={`relative shrink-0 ${large ? "h-[72px] w-[72px]" : "h-[58px] w-[58px]"}`}>
+      <div className="h-full w-full overflow-hidden rounded-full border-2 border-[#D7FF1F] bg-[#111827]">
+        <div className={`h-full w-full ${avatarBg(kind)}`} />
+      </div>
+      {online && (
+        <span className="absolute bottom-1 right-1 h-4 w-4 rounded-full border-2 border-[#0B0F17] bg-[#D7FF1F]" />
+      )}
     </div>
   );
 }
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { staggerChildren: 0.08 } },
-};
-const cardVariants = {
-  hidden: { opacity: 0, y: 24 },
-  show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } },
-};
+function avatarBg(kind: string) {
+  if (kind === "juliana")
+    return "bg-[radial-gradient(circle_at_45%_25%,#f9c8a8_0_16%,#3f1d1d_17%_34%,#121826_35%)]";
+  if (kind === "pedro")
+    return "bg-[radial-gradient(circle_at_50%_28%,#d7a06f_0_18%,#2a1b12_19%_36%,#101827_37%)]";
+  if (kind === "marcos")
+    return "bg-[radial-gradient(circle_at_48%_26%,#c69063_0_17%,#111827_18%_32%,#202020_33%)]";
+  return "bg-[radial-gradient(circle_at_55%_32%,#d6a06f_0_18%,#111827_19%_42%,#020617_43%)]";
+}
+
+function RouteThumb({ route }: { route: string }) {
+  return (
+    <div className="h-full min-h-[156px] bg-[#07100F] min-[420px]:min-h-[188px]">
+      <svg viewBox="0 0 220 220" className="h-full w-full" preserveAspectRatio="xMidYMid slice">
+        <rect width="220" height="220" fill="#07100F" />
+        <path
+          d="M0 40H220M0 88H220M0 136H220M0 184H220M40 0V220M88 0V220M136 0V220M184 0V220"
+          stroke="#1A2A00"
+          strokeWidth="1"
+          opacity="0.5"
+        />
+        <path
+          d="M24 30C60 58 70 32 102 54S152 36 198 74M15 166C42 142 62 154 92 128S146 116 204 134"
+          stroke="#173600"
+          strokeWidth="10"
+          opacity="0.55"
+        />
+        <path
+          d={route}
+          fill="none"
+          stroke="#D7FF1F"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <circle cx="66" cy="170" r="12" fill="#D7FF1F" />
+        <circle cx="66" cy="170" r="5" fill="#07100F" />
+      </svg>
+    </div>
+  );
+}
+
+function ActivityMetric({
+  icon,
+  value,
+  label,
+}: {
+  icon: React.ReactNode;
+  value: string;
+  label: string;
+}) {
+  return (
+    <div className="min-w-0 border-l border-[#1A1F2B] pl-3 first:border-l-0 first:pl-0">
+      <div className="flex items-center gap-1.5 truncate text-[clamp(13px,3.6vw,16px)] text-white">
+        <span className="shrink-0 text-white [&_svg]:h-5 [&_svg]:w-5 [&_svg]:stroke-[1.7]">
+          {icon}
+        </span>
+        <span className="truncate">{value}</span>
+      </div>
+      <div className="mt-2 truncate text-[clamp(11px,3vw,13px)] text-[#9CA3AF]">{label}</div>
+    </div>
+  );
+}
+
+function AvatarStack() {
+  return (
+    <div className="flex shrink-0 -space-x-3">
+      {["juliana", "pedro", "marcos", "runner"].map((kind) => (
+        <div
+          key={kind}
+          className="h-9 w-9 overflow-hidden rounded-full border-2 border-[#0B0F17] bg-[#111827]"
+        >
+          <div className={`h-full w-full ${avatarBg(kind)}`} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ActionButton({
+  icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  active?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex min-w-0 items-center justify-center gap-1 text-[clamp(11px,3vw,15px)] ${
+        active ? "text-[#D7FF1F]" : "text-[#D1D5DB]"
+      }`}
+    >
+      <span className="shrink-0 [&_svg]:h-5 [&_svg]:w-5 [&_svg]:stroke-[1.8] min-[420px]:[&_svg]:h-6 min-[420px]:[&_svg]:w-6">
+        {icon}
+      </span>
+      <span className="truncate">{label}</span>
+    </button>
+  );
+}

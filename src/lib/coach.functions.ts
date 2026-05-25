@@ -55,9 +55,16 @@ FC média: ${data.fcMedia ?? "n/a"} bpm`;
         const txt = await resp.text().catch(() => "");
         console.error("[coach] gateway error", resp.status, txt);
         if (resp.status === 429)
-          return { analise: "Limite de uso da IA atingido. Tente em alguns instantes.", fallback: true };
+          return {
+            analise: "Limite de uso do Pulse Coach atingido. Tente em alguns instantes.",
+            fallback: true,
+          };
         if (resp.status === 402)
-          return { analise: "Créditos de IA esgotados. Adicione créditos para análises personalizadas.", fallback: true };
+          return {
+            analise:
+              "Créditos do Pulse Coach esgotados. Adicione créditos para análises personalizadas.",
+            fallback: true,
+          };
         return { analise: "Não consegui gerar a análise agora. Bom treino!", fallback: true };
       }
 
@@ -68,6 +75,9 @@ FC média: ${data.fcMedia ?? "n/a"} bpm`;
       return { analise, fallback: false };
     } catch (e) {
       console.error("[coach] error", e);
-      return { analise: "Treino concluído. Mantenha o ritmo nas próximas sessões!", fallback: true };
+      return {
+        analise: "Treino concluído. Mantenha o ritmo nas próximas sessões!",
+        fallback: true,
+      };
     }
   });

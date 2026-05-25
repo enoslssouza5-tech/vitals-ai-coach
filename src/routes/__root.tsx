@@ -66,16 +66,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "apple-mobile-web-app-status-bar-style", content: "black-translucent" },
       { name: "mobile-web-app-capable", content: "yes" },
       { title: "Pulse — Treino Inteligente" },
-      { name: "description", content: "Seu treinador pessoal com IA. Treine, recupere e evolua." },
+      {
+        name: "description",
+        content: "Seu treinador pessoal com Coach. Treine, recupere e evolua.",
+      },
       { property: "og:title", content: "Pulse — Treino Inteligente" },
       { name: "twitter:title", content: "Pulse — Treino Inteligente" },
       {
         property: "og:description",
-        content: "Seu treinador pessoal com IA. Treine, recupere e evolua.",
+        content: "Seu treinador pessoal com Coach. Treine, recupere e evolua.",
       },
       {
         name: "twitter:description",
-        content: "Seu treinador pessoal com IA. Treine, recupere e evolua.",
+        content: "Seu treinador pessoal com Coach. Treine, recupere e evolua.",
       },
       {
         property: "og:image",
@@ -129,7 +132,7 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <PwaRegister />
-        <div className="mx-auto max-w-md min-h-screen bg-background">
+        <div className="pulse-mobile-shell mx-auto min-h-screen w-full overflow-x-hidden bg-background">
           <Outlet />
         </div>
         <AuthModal />

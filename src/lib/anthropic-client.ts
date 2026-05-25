@@ -41,7 +41,7 @@ export async function gerarTextoAnthropic({
       }),
     });
 
-    if (!response.ok) throw new Error("Falha ao chamar a IA.");
+    if (!response.ok) throw new Error("Falha ao chamar o Pulse Coach.");
     const json = await response.json();
     const text =
       json.content?.find((item: { type?: string; text?: string }) => item.type === "text")?.text ??

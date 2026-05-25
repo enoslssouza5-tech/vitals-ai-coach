@@ -18,8 +18,10 @@ import { Route as AppSocialRouteImport } from './routes/_app.social'
 import { Route as AppSaudeRouteImport } from './routes/_app.saude'
 import { Route as AppRotasRouteImport } from './routes/_app.rotas'
 import { Route as AppPerfilRouteImport } from './routes/_app.perfil'
+import { Route as AppIacoachRouteImport } from './routes/_app.iacoach'
 import { Route as AppHistoricoRouteImport } from './routes/_app.historico'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppAtividadesRouteImport } from './routes/_app.atividades'
 
 const TreinoAtivoRoute = TreinoAtivoRouteImport.update({
   id: '/treino-ativo',
@@ -65,6 +67,11 @@ const AppPerfilRoute = AppPerfilRouteImport.update({
   path: '/perfil',
   getParentRoute: () => AppRoute,
 } as any)
+const AppIacoachRoute = AppIacoachRouteImport.update({
+  id: '/iacoach',
+  path: '/iacoach',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppHistoricoRoute = AppHistoricoRouteImport.update({
   id: '/historico',
   path: '/historico',
@@ -75,13 +82,20 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAtividadesRoute = AppAtividadesRouteImport.update({
+  id: '/atividades',
+  path: '/atividades',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/onboarding': typeof OnboardingRoute
   '/treino-ativo': typeof TreinoAtivoRoute
+  '/atividades': typeof AppAtividadesRoute
   '/dashboard': typeof AppDashboardRoute
   '/historico': typeof AppHistoricoRoute
+  '/iacoach': typeof AppIacoachRoute
   '/perfil': typeof AppPerfilRoute
   '/rotas': typeof AppRotasRoute
   '/saude': typeof AppSaudeRoute
@@ -92,8 +106,10 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/onboarding': typeof OnboardingRoute
   '/treino-ativo': typeof TreinoAtivoRoute
+  '/atividades': typeof AppAtividadesRoute
   '/dashboard': typeof AppDashboardRoute
   '/historico': typeof AppHistoricoRoute
+  '/iacoach': typeof AppIacoachRoute
   '/perfil': typeof AppPerfilRoute
   '/rotas': typeof AppRotasRoute
   '/saude': typeof AppSaudeRoute
@@ -106,8 +122,10 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/onboarding': typeof OnboardingRoute
   '/treino-ativo': typeof TreinoAtivoRoute
+  '/_app/atividades': typeof AppAtividadesRoute
   '/_app/dashboard': typeof AppDashboardRoute
   '/_app/historico': typeof AppHistoricoRoute
+  '/_app/iacoach': typeof AppIacoachRoute
   '/_app/perfil': typeof AppPerfilRoute
   '/_app/rotas': typeof AppRotasRoute
   '/_app/saude': typeof AppSaudeRoute
@@ -120,8 +138,10 @@ export interface FileRouteTypes {
     | '/'
     | '/onboarding'
     | '/treino-ativo'
+    | '/atividades'
     | '/dashboard'
     | '/historico'
+    | '/iacoach'
     | '/perfil'
     | '/rotas'
     | '/saude'
@@ -132,8 +152,10 @@ export interface FileRouteTypes {
     | '/'
     | '/onboarding'
     | '/treino-ativo'
+    | '/atividades'
     | '/dashboard'
     | '/historico'
+    | '/iacoach'
     | '/perfil'
     | '/rotas'
     | '/saude'
@@ -145,8 +167,10 @@ export interface FileRouteTypes {
     | '/_app'
     | '/onboarding'
     | '/treino-ativo'
+    | '/_app/atividades'
     | '/_app/dashboard'
     | '/_app/historico'
+    | '/_app/iacoach'
     | '/_app/perfil'
     | '/_app/rotas'
     | '/_app/saude'
@@ -226,6 +250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPerfilRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/iacoach': {
+      id: '/_app/iacoach'
+      path: '/iacoach'
+      fullPath: '/iacoach'
+      preLoaderRoute: typeof AppIacoachRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/historico': {
       id: '/_app/historico'
       path: '/historico'
@@ -240,12 +271,21 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/atividades': {
+      id: '/_app/atividades'
+      path: '/atividades'
+      fullPath: '/atividades'
+      preLoaderRoute: typeof AppAtividadesRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppAtividadesRoute: typeof AppAtividadesRoute
   AppDashboardRoute: typeof AppDashboardRoute
   AppHistoricoRoute: typeof AppHistoricoRoute
+  AppIacoachRoute: typeof AppIacoachRoute
   AppPerfilRoute: typeof AppPerfilRoute
   AppRotasRoute: typeof AppRotasRoute
   AppSaudeRoute: typeof AppSaudeRoute
@@ -254,8 +294,10 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAtividadesRoute: AppAtividadesRoute,
   AppDashboardRoute: AppDashboardRoute,
   AppHistoricoRoute: AppHistoricoRoute,
+  AppIacoachRoute: AppIacoachRoute,
   AppPerfilRoute: AppPerfilRoute,
   AppRotasRoute: AppRotasRoute,
   AppSaudeRoute: AppSaudeRoute,

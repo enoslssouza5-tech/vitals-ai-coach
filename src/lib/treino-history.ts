@@ -8,6 +8,7 @@ export interface TreinoRegistro {
   ritmoMedio?: string | null;
   fcMedia?: number | null;
   analiseIA?: string;
+  coordenadas?: [number, number][];
 }
 
 const KEY = "pulse_treinos";
@@ -61,8 +62,7 @@ export function haversine(a: [number, number], b: [number, number]): number {
   const dLon = toRad(b[1] - a[1]);
   const lat1 = toRad(a[0]);
   const lat2 = toRad(b[0]);
-  const h =
-    Math.sin(dLat / 2) ** 2 + Math.sin(dLon / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
+  const h = Math.sin(dLat / 2) ** 2 + Math.sin(dLon / 2) ** 2 * Math.cos(lat1) * Math.cos(lat2);
   return 2 * R * Math.asin(Math.sqrt(h));
 }
 
