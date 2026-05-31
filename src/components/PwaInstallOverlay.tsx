@@ -216,8 +216,11 @@ export function PwaInstallOverlay() {
   useEffect(() => {
     if (isStandalone() || wasDismissed()) return;
 
-    setBrowser(detectBrowser());
+    const detectedBrowser = detectBrowser();
+    setBrowser(detectedBrowser);
     setAppUrl(window.location.origin + "/dashboard");
+
+    if (detectedBrowser === "desktop") return;
 
     const timer = window.setTimeout(() => {
       if (!isStandalone() && !wasDismissed()) setVisible(true);

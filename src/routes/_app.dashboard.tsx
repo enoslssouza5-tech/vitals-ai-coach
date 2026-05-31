@@ -8,8 +8,6 @@ import {
   CoachButton,
   DesignCard,
   SectionTitle,
-  TrainingLoadCard,
-  VitalsHex,
   WeeklySummary,
 } from "@/components/PulseUI";
 import { gerarTextoAnthropic } from "@/lib/anthropic-client";
@@ -28,12 +26,32 @@ import {
   Cloud,
   CloudRain,
   Droplets,
+  Footprints,
   Info,
+  Moon,
+  Target,
   Sparkles,
   Sun,
   Thermometer,
+  TrendingUp,
   Wind,
 } from "lucide-react";
+import { motion } from "framer-motion";
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1,
+    },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } },
+};
 
 export const Route = createFileRoute("/_app/dashboard")({ component: Dashboard });
 
@@ -80,10 +98,17 @@ function Dashboard() {
     <AppScreen>
       <AppHeader title={<>Bom dia, {firstName}! 👋</>} subtitle="Pronto para mais uma corrida?" />
 
-      <div className="space-y-5">
-        <WeatherCard city={perfil.cidade || "São Paulo"} />
+      <motion.div 
+        className="space-y-5"
+        variants={containerVariants}
+        initial={false}
+        animate="show"
+      >
+        <DesignCard variants={itemVariants} className="p-0 border-0 bg-transparent">
+          <WeatherCard city={perfil.cidade || "São Paulo"} />
+        </DesignCard>
 
-        <DesignCard>
+        <DesignCard variants={itemVariants}>
           <SectionTitle
             title="Resumo da semana"
             icon={<Calendar className="h-5 w-5 text-[#C8FF00]" strokeWidth={1.5} />}
@@ -96,7 +121,7 @@ function Dashboard() {
           <WeeklySummary />
         </DesignCard>
 
-        <DesignCard>
+        <DesignCard variants={itemVariants}>
           <div className="grid grid-cols-[1fr_auto] gap-5">
             <div>
               <div className="mb-4 flex items-center gap-2 text-sm font-bold uppercase text-[#C8FF00]">
@@ -133,36 +158,117 @@ function Dashboard() {
         </DesignCard>
 
         {clima && clima.temp > 30 && (
-          <DesignCard className="py-4">
+          <DesignCard variants={itemVariants} className="py-4">
             <p className="text-sm text-[#888888]">
               Calor alto hoje: {clima.temp}°C. Hidrate-se antes do treino.
             </p>
           </DesignCard>
         )}
 
-        <DesignCard>
+        <DesignCard variants={itemVariants}>
           <SectionTitle title="Atividades recentes" action="Ver todas" />
           <ActivityList treinos={treinos} showBadge limit={3} />
         </DesignCard>
 
-        <div className="grid grid-cols-2 gap-4">
-          <DesignCard className="min-h-[196px]">
-            <div className="mb-3 flex items-center gap-2 text-lg font-bold">
-              VITALs Score <Info className="h-4 w-4 text-[#888888]" strokeWidth={1.5} />
-            </div>
-            <div className="flex items-center gap-3">
-              <VitalsHex value={78} small />
-              <div>
-                <div className="text-lg font-bold text-[#C8FF00]">Bom</div>
-                <div className="mt-2 text-sm text-[#888888]">Continue assim!</div>
-              </div>
-            </div>
-          </DesignCard>
-          <TrainingLoadCard />
-        </div>
-      </div>
+        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-4">
+          <ReadinessCard score={78} />
+          <WeeklyFocusCard currentKm={42.6} targetKm={50} />
+        </motion.div>
+      </motion.div>
     </AppScreen>
   );
+}
+
+function ReadinessCard({ score }: { score: number }) {
+  const markers = [
+    { label: "Sono", value: "7h20", icon: Moon },
+    { label: "Recup.", value: "84%", icon: ActivityIcon },
+  ];
+
+  return (
+    <DesignCard className="min-h-[216px] h-full">
+      <div className="mb-4 flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-base font-bold text-white">
+            Prontidão <Info className="h-4 w-4 shrink-0 text-[#888888]" strokeWidth={1.5} />
+          </div>
+          <div className="mt-1 text-[11px] font-semibold uppercase tracking-[1px] text-[#555555]">
+            Hoje
+          </div>
+        </div>
+        <div className="rounded-full bg-[#1A2A00] px-2 py-1 text-[11px] font-bold text-[#C8FF00]">
+          Bom
+        </div>
+      </div>
+
+      <div className="flex items-end gap-2">
+        <div className="text-[36px] font-black leading-none text-[#C8FF00]">{score}</div>
+        <div className="pb-1 text-xs font-semibold text-[#888888]">/100</div>
+      </div>
+      <p className="mt-2 text-[13px] leading-snug text-[#888888]">
+        Corpo pronto para rodagem moderada. Evite intensidade máxima hoje.
+      </p>
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        {markers.map(({ label, value, icon: Icon }) => (
+          <div key={label} className="rounded-xl bg-[#0A0A0A] p-2">
+            <Icon className="h-4 w-4 text-[#C8FF00]" strokeWidth={1.7} />
+            <div className="mt-2 text-sm font-bold text-white">{value}</div>
+            <div className="text-[11px] text-[#888888]">{label}</div>
+          </div>
+        ))}
+      </div>
+    </DesignCard>
+  );
+}
+
+function WeeklyFocusCard({ currentKm, targetKm }: { currentKm: number; targetKm: number }) {
+  const progress = Math.min(100, Math.round((currentKm / targetKm) * 100));
+  const remaining = Math.max(0, targetKm - currentKm);
+
+  return (
+    <DesignCard className="min-h-[216px] h-full">
+      <div className="mb-4 flex items-start justify-between gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-base font-bold text-white">
+            Foco semanal <Info className="h-4 w-4 shrink-0 text-[#888888]" strokeWidth={1.5} />
+          </div>
+          <div className="mt-1 text-[11px] font-semibold uppercase tracking-[1px] text-[#555555]">
+            Meta 50 km
+          </div>
+        </div>
+        <Target className="h-5 w-5 shrink-0 text-[#C8FF00]" strokeWidth={1.7} />
+      </div>
+
+      <div className="flex items-end gap-1">
+        <div className="text-[32px] font-black leading-none text-white">
+          {currentKm.toFixed(1).replace(".", ",")}
+        </div>
+        <div className="pb-1 text-sm font-bold text-[#888888]">km</div>
+      </div>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-[#333333]">
+        <div className="h-full rounded-full bg-[#C8FF00]" style={{ width: `${progress}%` }} />
+      </div>
+      <div className="mt-2 flex items-center justify-between text-[11px] text-[#888888]">
+        <span>{progress}% concluído</span>
+        <span>{remaining.toFixed(1).replace(".", ",")} km faltam</span>
+      </div>
+
+      <div className="mt-4 rounded-xl bg-[#0A0A0A] p-3">
+        <div className="flex items-center gap-2 text-[13px] font-bold text-white">
+          <Footprints className="h-4 w-4 text-[#C8FF00]" strokeWidth={1.7} />
+          Próximo treino
+        </div>
+        <div className="mt-1 text-xs leading-snug text-[#888888]">
+          7 km leve para fechar a semana sem sobrecarga.
+        </div>
+      </div>
+    </DesignCard>
+  );
+}
+
+function ActivityIcon(props: React.ComponentProps<typeof TrendingUp>) {
+  return <TrendingUp {...props} />;
 }
 
 type WeatherDay = {

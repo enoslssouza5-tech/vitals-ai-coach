@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import {
   Bell,
@@ -54,9 +54,13 @@ function Perfil() {
         <h1 className="text-2xl font-bold tracking-[-0.3px]">Perfil</h1>
         <div className="flex items-center gap-3 text-[#888888]">
           <NotificationBell />
-          <button className="grid h-11 w-11 place-items-center" aria-label="Configurações">
+          <Link
+            to="/configuracoes"
+            className="grid h-11 w-11 place-items-center"
+            aria-label="Configurações"
+          >
             <Settings className="h-[22px] w-[22px]" strokeWidth={1.8} />
-          </button>
+          </Link>
         </div>
       </header>
 

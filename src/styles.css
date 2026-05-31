@@ -155,7 +155,7 @@
     max-width: 390px;
     height: calc(60px + env(safe-area-inset-bottom));
     transform: translateX(-50%);
-    overflow: hidden;
+    overflow: visible;
     border-top: 1px solid rgba(255, 255, 255, 0.06);
     background: #0a0a0a;
     padding-bottom: env(safe-area-inset-bottom);

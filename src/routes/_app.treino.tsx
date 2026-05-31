@@ -14,6 +14,13 @@ import {
 import { toast } from "sonner";
 import { estimarCalorias, fmtDuracao, salvarTreino } from "@/lib/treino-history";
 import { demoPath } from "@/lib/pulse-design-data";
+import { motion, AnimatePresence } from "framer-motion";
+
+const stageVariants = {
+  initial: { opacity: 0, y: 20 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.3 } },
+  exit: { opacity: 0, scale: 0.95, transition: { duration: 0.2 } },
+};
 
 export const Route = createFileRoute("/_app/treino")({ component: TreinoPage });
 
@@ -205,8 +212,9 @@ function TreinoPage() {
 
   return (
     <main className="screen-container bg-[#0A0A0A] pt-safe text-white">
+      <AnimatePresence mode="wait" initial={false}>
       {stage === "setup" && (
-        <>
+        <motion.div key="setup" variants={stageVariants} initial="initial" animate="animate" exit="exit">
           <Header title="Treino de hoje" subtitle={new Date().toLocaleDateString("pt-BR")} />
           <section className="space-y-5">
             <CoachBriefing
@@ -233,7 +241,8 @@ function TreinoPage() {
               <h2 className="mb-3 text-lg font-bold">Configurações rápidas</h2>
               <div className="grid grid-cols-3 gap-2">
                 {["Distância alvo", "Tempo alvo", "Livre"].map((item) => (
-                  <button
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
                     key={item}
                     onClick={() => setTarget(item)}
                     className={`min-h-12 rounded-xl border px-2 text-xs font-bold ${
@@ -243,12 +252,13 @@ function TreinoPage() {
                     }`}
                   >
                     {item}
-                  </button>
+                  </motion.button>
                 ))}
               </div>
             </div>
 
-            <button
+            <motion.button
+              whileTap={{ scale: 0.95 }}
               onClick={start}
               disabled={!sport}
               className={`flex h-14 w-full items-center justify-center gap-2 rounded-xl text-sm font-black ${
@@ -256,13 +266,13 @@ function TreinoPage() {
               }`}
             >
               <Play className="h-5 w-5 fill-current" /> INICIAR TREINO
-            </button>
+            </motion.button>
           </section>
-        </>
+        </motion.div>
       )}
 
       {stage === "active" && (
-        <>
+        <motion.div key="active" variants={stageVariants} initial="initial" animate="animate" exit="exit">
           <Header title="Treino ativo" subtitle={paused ? "Pausado" : "Gravando agora"} />
           <MapStage active={!paused} />
           <section className="mt-5 grid grid-cols-3 gap-3">
@@ -271,7 +281,8 @@ function TreinoPage() {
             <LiveMetric label="Pace atual" value={`${paceText}/km`} />
           </section>
           <section className="mt-6 grid grid-cols-2 gap-3">
-            <button
+            <motion.button
+              whileTap={{ scale: 0.95 }}
               onClick={() => setPaused((current) => !current)}
               className={`flex h-14 items-center justify-center gap-2 rounded-xl text-sm font-black ${
                 paused ? "bg-[#C8FF00] text-black" : "bg-[#ff9900] text-black"
@@ -279,19 +290,20 @@ function TreinoPage() {
             >
               {paused ? <Play className="h-5 w-5 fill-current" /> : <Pause className="h-5 w-5" />}
               {paused ? "RETOMAR" : "PAUSAR"}
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
               onClick={finish}
               className="flex h-14 items-center justify-center gap-2 rounded-xl bg-[#ff4466] text-sm font-black text-white"
             >
               <Square className="h-5 w-5 fill-current" /> ENCERRAR
-            </button>
+            </motion.button>
           </section>
-        </>
+        </motion.div>
       )}
 
       {stage === "finished" && (
-        <>
+        <motion.div key="finished" variants={stageVariants} initial="initial" animate="animate" exit="exit">
           <Header title="Treino concluído! 🎉" subtitle="Resumo pronto para salvar" />
           <section className="rounded-2xl border border-white/[0.06] bg-[#1A1A1A] p-4">
             <div className="mb-4 inline-flex rounded-md bg-[#1A2A00] px-3 py-1 text-sm font-bold text-[#C8FF00]">
@@ -313,20 +325,23 @@ function TreinoPage() {
             placeholder="Como foi o treino? Adicione uma nota..."
             className="mt-5 min-h-[112px] w-full resize-none rounded-2xl border border-white/[0.06] bg-[#1A1A1A] p-4 text-white outline-none placeholder:text-[#888888]"
           />
-          <button
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             onClick={save}
             className="mt-4 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-[#C8FF00] text-sm font-black text-black"
           >
             <Save className="h-5 w-5" /> Salvar atividade
-          </button>
-          <button
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             onClick={() => setStage("setup")}
             className="mt-3 h-12 w-full rounded-xl text-sm font-bold text-[#888888]"
           >
             Descartar
-          </button>
-        </>
+          </motion.button>
+        </motion.div>
       )}
+      </AnimatePresence>
     </main>
   );
 }
@@ -483,7 +498,8 @@ function SportSelector({
         </div>
         <div className="grid grid-cols-2 gap-2">
           {category.sports.map((sport) => (
-            <button
+            <motion.button
+              whileTap={{ scale: 0.95 }}
               key={sport}
               type="button"
               onClick={() => onSelect(sport)}
@@ -494,7 +510,7 @@ function SportSelector({
               }`}
             >
               {sport}
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>
