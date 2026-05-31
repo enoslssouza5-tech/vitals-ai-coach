@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute } from "@tanstack/react-router";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -154,7 +154,12 @@ function Dashboard() {
         </motion.div>
 
         <DesignCard variants={itemVariants}>
-          <SectionTitle title="Atividades" action="Ver todas" />
+          <div className="activities-header">
+            <h2 className="activities-title">Atividades recentes</h2>
+            <Link to="/atividades" className="activities-see-all">
+              Ver todas <ChevronRight className="h-3.5 w-3.5" strokeWidth={2} />
+            </Link>
+          </div>
           <ActivityList treinos={treinos} showBadge limit={3} />
         </DesignCard>
       </motion.div>

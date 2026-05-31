@@ -199,6 +199,7 @@ function ActivityDetail({ activity, onBack }: { activity: PulseActivity; onBack:
         showControls={false}
         defaultMode="roadmap"
         strokeWeight={4}
+        tilt={30}
       />
 
       <section className="mt-5">

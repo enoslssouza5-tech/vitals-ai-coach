@@ -228,8 +228,24 @@ function ActivitiesTab({
 }
 
 function StatsTab() {
+  const heatmapRoutes = useMemo(() => pulseActivities.map((activity) => activity.route), []);
+
   return (
     <div className="space-y-5">
+      <Card>
+        <SectionHeader title="Mapa de calor" />
+        <GoogleMapView
+          paths={heatmapRoutes}
+          className="h-[220px] rounded-2xl"
+          interactive={false}
+          showControls={false}
+          defaultMode="roadmap"
+          tilt={45}
+          terrain
+          heatmap
+          ariaLabel="Heatmap de rotas do perfil"
+        />
+      </Card>
       <Card>
         <SectionHeader title="Totais históricos" />
         <div className="grid-2col">

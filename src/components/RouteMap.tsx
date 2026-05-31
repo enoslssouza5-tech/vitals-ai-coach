@@ -52,8 +52,9 @@ export const RouteMap = memo(function RouteMap({
       defaultZoom={17}
       defaultMode="hybrid"
       strokeWeight={5}
-      tilt={45}
+      tilt={60}
       heading={heading}
+      terrain
       ariaLabel="Mapa do treino em tempo real"
     />
   );

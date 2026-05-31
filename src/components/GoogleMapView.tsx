@@ -1,18 +1,16 @@
 import { memo, useEffect, useMemo, useRef, useState } from "react";
-import { MapPin } from "lucide-react";
-import {
-  boundsFromPath,
-  GOOGLE_MAPS_DARK_STYLE,
-  hasGoogleMapsKey,
-  loadGoogleMaps,
-  simplifyPath,
-  toLatLng,
-  type LatLngTuple,
-} from "@/lib/google-maps";
+import { Crosshair, Map } from "lucide-react";
+import type {
+  GeoJSONSource,
+  LngLatBoundsLike,
+  Map as MapboxMap,
+  Marker as MapboxMarker,
+} from "mapbox-gl";
+import { simplifyPath, type LatLngTuple } from "@/lib/google-maps";
 
 type MapMode = "hybrid" | "satellite" | "terrain" | "roadmap";
-
 type MarkerKind = "start" | "end" | "current" | "km";
+type LngLatTuple = [number, number];
 
 export type GoogleRouteMarker = {
   position: LatLngTuple;
@@ -32,13 +30,54 @@ type Props = {
   defaultMode?: MapMode;
   showControls?: boolean;
   opacity?: number;
+  strokeColor?: string;
   strokeWeight?: number;
   tilt?: number;
   heading?: number;
   ariaLabel?: string;
+  heatmap?: boolean;
+  terrain?: boolean;
 };
 
-const modeOrder: MapMode[] = ["hybrid", "satellite", "terrain", "roadmap"];
+const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN || "";
+const DARK_STYLE = "mapbox://styles/mapbox/dark-v11";
+const SATELLITE_STYLE = "mapbox://styles/mapbox/satellite-streets-v12";
+
+let mapboxPromise: Promise<typeof import("mapbox-gl").default> | null = null;
+
+async function loadMapbox() {
+  mapboxPromise ??= Promise.all([
+    import("mapbox-gl"),
+    import("mapbox-gl/dist/mapbox-gl.css"),
+  ]).then(([module]) => {
+    module.default.accessToken = MAPBOX_TOKEN;
+    return module.default;
+  });
+  return mapboxPromise;
+}
+
+export function hasMapboxToken() {
+  return Boolean(MAPBOX_TOKEN);
+}
+
+export function simplifyCoords(coords: LatLngTuple[], maxPoints = 500) {
+  if (coords.length <= maxPoints) return coords;
+  const step = Math.ceil(coords.length / maxPoints);
+  return coords.filter((_, index) => index % step === 0);
+}
+
+export function calculateDistance([lng1, lat1]: LngLatTuple, [lng2, lat2]: LngLatTuple) {
+  const radius = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) *
+      Math.sin(dLng / 2);
+  return radius * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 export const GoogleMapView = memo(function GoogleMapView({
   paths = [],
@@ -52,157 +91,143 @@ export const GoogleMapView = memo(function GoogleMapView({
   defaultMode = "hybrid",
   showControls = true,
   opacity = 0.95,
+  strokeColor = "#C8FF00",
   strokeWeight = 5,
   tilt = 0,
   heading = 0,
-  ariaLabel = "Mapa Google",
+  ariaLabel = "Mapa",
+  heatmap = false,
+  terrain = false,
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const mapRef = useRef<google.maps.Map | null>(null);
-  const polylinesRef = useRef<google.maps.Polyline[]>([]);
-  const markersRef = useRef<google.maps.Marker[]>([]);
+  const mapRef = useRef<MapboxMap | null>(null);
+  const markerRefs = useRef<MapboxMarker[]>([]);
   const [mode, setMode] = useState<MapMode>(defaultMode);
   const [ready, setReady] = useState(false);
-  const [error, setError] = useState(!hasGoogleMapsKey());
+  const [error, setError] = useState(!hasMapboxToken());
 
   const simplifiedPaths = useMemo(
-    () => paths.map((path) => simplifyPath(path).filter(Boolean)),
+    () => paths.map((path) => simplifyCoords(simplifyPath(path).filter(Boolean))),
     [paths],
   );
   const flatPath = useMemo(() => simplifiedPaths.flat(), [simplifiedPaths]);
+  const lastPoint = flatPath[flatPath.length - 1];
+
+  useEffect(() => setMode(defaultMode), [defaultMode]);
 
   useEffect(() => {
     if (!hostRef.current || mapRef.current || error) return;
     let cancelled = false;
 
-    loadGoogleMaps()
-      .then(() => {
+    loadMapbox()
+      .then((mapboxgl) => {
         if (cancelled || !hostRef.current) return;
-        const center = flatPath[0] ?? defaultCenter;
-        mapRef.current = new google.maps.Map(hostRef.current, {
-          center: toLatLng(center),
+        const center = toLngLat(flatPath[0] ?? defaultCenter);
+        mapRef.current = new mapboxgl.Map({
+          container: hostRef.current,
+          style: styleForMode(mode),
+          center,
           zoom: defaultZoom,
-          mapTypeId: mode,
-          styles: mode === "roadmap" ? GOOGLE_MAPS_DARK_STYLE : undefined,
-          disableDefaultUI: true,
-          clickableIcons: false,
-          gestureHandling: interactive ? "greedy" : "none",
-          draggable: interactive,
-          scrollwheel: interactive,
-          disableDoubleClickZoom: !interactive,
-          keyboardShortcuts: interactive,
-          minZoom: 10,
-          maxZoom: 20,
-          tilt,
-          heading,
+          pitch: terrain || tilt > 0 ? Math.max(tilt, terrain ? 60 : 30) : 0,
+          bearing: heading,
+          antialias: true,
+          attributionControl: false,
+          interactive,
         });
-        setReady(true);
+
+        mapRef.current.on("load", () => {
+          if (!mapRef.current) return;
+          reinitializeLayers(mapRef.current, {
+            paths: simplifiedPaths,
+            strokeColor,
+            strokeWeight,
+            opacity,
+            heatmap,
+            terrain,
+          });
+          setReady(true);
+        });
       })
       .catch(() => setError(true));
 
     return () => {
       cancelled = true;
+      markerRefs.current.forEach((marker) => marker.remove());
+      markerRefs.current = [];
+      mapRef.current?.remove();
+      mapRef.current = null;
     };
-  }, [defaultCenter, defaultZoom, error, flatPath, heading, interactive, mode, tilt]);
-
-  useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
-    map.setMapTypeId(mode);
-    map.setOptions({
-      styles: mode === "roadmap" ? GOOGLE_MAPS_DARK_STYLE : undefined,
-      gestureHandling: interactive ? "greedy" : "none",
-      draggable: interactive,
-      scrollwheel: interactive,
-      disableDoubleClickZoom: !interactive,
-      keyboardShortcuts: interactive,
-      tilt,
-      heading,
-    });
-  }, [heading, interactive, mode, tilt]);
+  }, []);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
-    polylinesRef.current.forEach((line) => line.setMap(null));
-    polylinesRef.current = simplifiedPaths
-      .filter((path) => path.length >= 2)
-      .map(
-        (path) =>
-          new google.maps.Polyline({
-            map,
-            path: path.map(toLatLng),
-            strokeColor: "#00ff88",
-            strokeOpacity: opacity,
-            strokeWeight,
-            geodesic: true,
-          }),
-      );
+    map.setStyle(styleForMode(mode));
+    map.once("style.load", () => {
+      reinitializeLayers(map, {
+        paths: simplifiedPaths,
+        strokeColor,
+        strokeWeight,
+        opacity,
+        heatmap,
+        terrain,
+      });
+    });
+  }, [heatmap, mode, opacity, ready, simplifiedPaths, strokeColor, strokeWeight, terrain]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    updateRouteSources(map, simplifiedPaths, heatmap);
 
     if (flatPath.length > 1 && fitToPath) {
-      map.fitBounds(boundsFromPath(flatPath), 40);
-    } else if (flatPath.length && followLastPoint) {
-      map.panTo(toLatLng(flatPath[flatPath.length - 1]));
-      map.setZoom(defaultZoom);
+      map.fitBounds(boundsFromPath(flatPath), { padding: 20, duration: 0, pitch: tilt || 30 });
+    } else if (lastPoint && followLastPoint) {
+      map.easeTo({
+        center: toLngLat(lastPoint),
+        bearing: heading,
+        pitch: terrain ? 60 : tilt,
+        zoom: defaultZoom,
+        duration: 800,
+        easing: (t) => t,
+      });
     }
-  }, [
-    defaultZoom,
-    fitToPath,
-    flatPath,
-    followLastPoint,
-    opacity,
-    ready,
-    simplifiedPaths,
-    strokeWeight,
-  ]);
+  }, [defaultZoom, fitToPath, flatPath, followLastPoint, heading, heatmap, lastPoint, ready, simplifiedPaths, terrain, tilt]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
-    markersRef.current.forEach((marker) => marker.setMap(null));
-    markersRef.current = markers.map((marker) => {
-      const pin = new google.maps.Marker({
-        map,
-        position: toLatLng(marker.position),
-        label:
-          marker.kind === "km"
-            ? {
-                text: marker.label ?? "",
-                color: "#0B1023",
-                fontSize: "11px",
-                fontWeight: "900",
-              }
-            : undefined,
-        icon: markerIcon(marker.kind),
-        clickable: false,
-      });
-      return pin;
+    markerRefs.current.forEach((marker) => marker.remove());
+    markerRefs.current = [];
+    loadMapbox().then((mapboxgl) => {
+      markerRefs.current = markers
+        .filter((marker) => marker.position)
+        .map((marker) =>
+          new mapboxgl.Marker({ element: markerElement(marker), anchor: "center" })
+            .setLngLat(toLngLat(marker.position))
+            .addTo(map),
+        );
     });
   }, [markers, ready]);
 
-  const centerOnLast = () => {
-    const map = mapRef.current;
-    const last = flatPath[flatPath.length - 1];
-    if (!map || !last) return;
-    map.panTo(toLatLng(last));
-    map.setZoom(defaultZoom);
-    map.setTilt(tilt);
-    map.setHeading(heading);
-  };
-
-  const cycleMode = () => {
-    setMode((current) => modeOrder[(modeOrder.indexOf(current) + 1) % modeOrder.length]);
-  };
+  useEffect(() => {
+    const center = () => {
+      const map = mapRef.current;
+      if (!map || !lastPoint) return;
+      map.easeTo({
+        center: toLngLat(lastPoint),
+        zoom: defaultZoom,
+        pitch: terrain ? 60 : tilt,
+        bearing: heading,
+        duration: 600,
+      });
+    };
+    window.addEventListener("pulse-map-center", center);
+    return () => window.removeEventListener("pulse-map-center", center);
+  }, [defaultZoom, heading, lastPoint, terrain, tilt]);
 
   if (error) {
-    return (
-      <div
-        className={`relative overflow-hidden bg-[#1A1A1A] ${className ?? ""}`}
-        aria-label={ariaLabel}
-      >
-        <FallbackRoute paths={simplifiedPaths} />
-      </div>
-    );
+    return <MapboxPlaceholder className={className} ariaLabel={ariaLabel} />;
   }
 
   return (
@@ -210,21 +235,17 @@ export const GoogleMapView = memo(function GoogleMapView({
       <div ref={hostRef} className="h-full w-full" />
       {showControls && (
         <div className="absolute top-3 right-3 z-10 flex gap-2">
-          <button
-            type="button"
-            onClick={cycleMode}
-            className="h-10 px-3 rounded-full bg-background/85 border border-border/70 text-[9px] font-black tracking-widest uppercase text-foreground"
-            aria-label="Alternar tipo do Google Maps"
-          >
-            {mode === "roadmap" ? "dark" : mode}
+          <button type="button" onClick={() => setMode(toggleMode(mode))} className="mapbox-pill">
+            <Map className="h-3.5 w-3.5" />
+            {mode === "satellite" || mode === "hybrid" ? "Satelite" : "Mapa"}
           </button>
           <button
             type="button"
-            onClick={centerOnLast}
-            className="h-10 w-10 rounded-full bg-background/85 border border-border/70 text-[13px] font-black text-foreground"
+            onClick={() => window.dispatchEvent(new Event("pulse-map-center"))}
+            className="mapbox-center"
             aria-label="Centralizar mapa na posicao atual"
           >
-            ◎
+            <Crosshair className="h-[18px] w-[18px]" />
           </button>
         </div>
       )}
@@ -232,65 +253,169 @@ export const GoogleMapView = memo(function GoogleMapView({
   );
 });
 
-function markerIcon(kind: MarkerKind): google.maps.Symbol {
-  const fillColor =
-    kind === "end"
-      ? "#ffffff"
-      : kind === "km"
-        ? "#00ccff"
-        : kind === "current"
-          ? "#00ff88"
-          : "#00ff88";
+function reinitializeLayers(
+  map: MapboxMap,
+  options: {
+    paths: LatLngTuple[][];
+    strokeColor: string;
+    strokeWeight: number;
+    opacity: number;
+    heatmap: boolean;
+    terrain: boolean;
+  },
+) {
+  if (!map.isStyleLoaded()) return;
+  if (options.terrain) {
+    if (!map.getSource("mapbox-dem")) {
+      map.addSource("mapbox-dem", {
+        type: "raster-dem",
+        url: "mapbox://mapbox.mapbox-terrain-dem-v1",
+        tileSize: 512,
+        maxzoom: 14,
+      });
+    }
+    map.setTerrain({ source: "mapbox-dem", exaggeration: options.heatmap ? 1.2 : 1.5 });
+    if (!options.heatmap && !map.getLayer("3d-buildings")) {
+      map.addLayer({
+        id: "3d-buildings",
+        source: "composite",
+        "source-layer": "building",
+        filter: ["==", "extrude", "true"],
+        type: "fill-extrusion",
+        minzoom: 15,
+        paint: {
+          "fill-extrusion-color": "#1E1E32",
+          "fill-extrusion-height": ["interpolate", ["linear"], ["zoom"], 15, 0, 15.05, ["get", "height"]],
+          "fill-extrusion-base": ["get", "min_height"],
+          "fill-extrusion-opacity": 0.85,
+        },
+      });
+    }
+  }
+
+  const sourceId = options.heatmap ? "all-routes" : "route";
+  if (!map.getSource(sourceId)) {
+    map.addSource(sourceId, { type: "geojson", data: routeData(options.paths, options.heatmap) });
+  }
+
+  if (options.heatmap) {
+    if (!map.getLayer("heatmap-routes")) {
+      map.addLayer({
+        id: "heatmap-routes",
+        type: "line",
+        source: sourceId,
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: { "line-color": "#C8FF00", "line-width": 2, "line-opacity": 0.25 },
+      });
+    }
+    return;
+  }
+
+  if (!map.getLayer("route-glow")) {
+    map.addLayer({
+      id: "route-glow",
+      type: "line",
+      source: sourceId,
+      layout: { "line-join": "round", "line-cap": "round" },
+      paint: {
+        "line-color": options.strokeColor,
+        "line-width": Math.max(8, options.strokeWeight * 2),
+        "line-opacity": 0.25,
+        "line-blur": 4,
+      },
+    });
+  }
+  if (!map.getLayer("route-line")) {
+    map.addLayer({
+      id: "route-line",
+      type: "line",
+      source: sourceId,
+      layout: { "line-join": "round", "line-cap": "round" },
+      paint: {
+        "line-color": options.strokeColor,
+        "line-width": options.strokeWeight,
+        "line-opacity": options.opacity,
+      },
+    });
+  }
+}
+
+function updateRouteSources(map: MapboxMap, paths: LatLngTuple[][], heatmap: boolean) {
+  const source = map.getSource(heatmap ? "all-routes" : "route") as GeoJSONSource | undefined;
+  source?.setData(routeData(paths, heatmap));
+}
+
+function routeData(paths: LatLngTuple[][], heatmap: boolean) {
+  if (heatmap) {
+    return {
+      type: "FeatureCollection" as const,
+      features: paths
+        .filter((path) => path.length >= 2)
+        .map((path) => ({
+          type: "Feature" as const,
+          properties: {},
+          geometry: { type: "LineString" as const, coordinates: path.map(toLngLat) },
+        })),
+    };
+  }
+
   return {
-    path: google.maps.SymbolPath.CIRCLE,
-    fillColor,
-    fillOpacity: kind === "current" ? 0.95 : 1,
-    scale: kind === "km" ? 10 : kind === "current" ? 8 : 7,
-    strokeColor: kind === "end" ? "#00ff88" : "#0B1023",
-    strokeWeight: 2,
+    type: "Feature" as const,
+    properties: {},
+    geometry: {
+      type: "LineString" as const,
+      coordinates: (paths[0] ?? []).map(toLngLat),
+    },
   };
 }
 
-function FallbackRoute({ paths }: { paths: LatLngTuple[][] }) {
-  const path = paths[0] ?? [];
-  const points = path.length
-    ? path.map((_, index) => {
-        const x = 8 + (index / Math.max(1, path.length - 1)) * 84;
-        const y = 72 - ((index % 5) / 4) * 44 - (index % 2) * 10;
-        return `${x},${y}`;
-      })
-    : ["8,66", "28,28", "50,56", "72,24", "92,42"];
+function markerElement(marker: GoogleRouteMarker) {
+  const el = document.createElement("div");
+  if (marker.kind === "current") {
+    el.className = "mapbox-position-dot";
+    return el;
+  }
+  if (marker.kind === "km") {
+    el.className = "mapbox-km-marker";
+    el.textContent = marker.label ?? "";
+    return el;
+  }
+  el.className = marker.kind === "end" ? "mapbox-end-marker" : "mapbox-start-marker";
+  return el;
+}
 
+function MapboxPlaceholder({ className, ariaLabel }: { className?: string; ariaLabel: string }) {
   return (
-    <div className="relative h-full w-full overflow-hidden rounded-[inherit] bg-[#1A1A1A]">
-      <svg
-        viewBox="0 0 100 80"
-        className="absolute inset-0 h-full w-full opacity-80"
-        preserveAspectRatio="none"
-        aria-hidden="true"
-      >
-        <rect width="100" height="80" fill="#1A1A1A" />
-        <path
-          d="M0 20H100M0 40H100M0 60H100M20 0V80M40 0V80M60 0V80M80 0V80"
-          stroke="rgba(255,255,255,0.06)"
-          strokeWidth="0.5"
-        />
-        {path.length >= 2 && (
-          <polyline
-            points={points.join(" ")}
-            fill="none"
-            stroke="#C8FF00"
-            strokeWidth="2.4"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        )}
-      </svg>
-      {!path.length && (
-        <div className="absolute inset-0 grid place-items-center">
-          <MapPin className="h-8 w-8 text-[#333333]" strokeWidth={1.7} />
-        </div>
-      )}
+    <div
+      className={`grid place-items-center overflow-hidden bg-[#111111] ${className ?? ""}`}
+      aria-label={ariaLabel}
+    >
+      <div className="flex flex-col items-center gap-2">
+        <Map className="h-8 w-8 text-[#333333]" strokeWidth={1.6} />
+        <span className="text-[13px] font-semibold text-[#555555]">Mapa indisponível</span>
+      </div>
     </div>
   );
+}
+
+function boundsFromPath(path: LatLngTuple[]): LngLatBoundsLike {
+  const lngLats = path.map(toLngLat);
+  const lngs = lngLats.map(([lng]) => lng);
+  const lats = lngLats.map(([, lat]) => lat);
+  return [
+    [Math.min(...lngs), Math.min(...lats)],
+    [Math.max(...lngs), Math.max(...lats)],
+  ];
+}
+
+function toLngLat([lat, lng]: LatLngTuple): LngLatTuple {
+  return [lng, lat];
+}
+
+function styleForMode(mode: MapMode) {
+  return mode === "satellite" || mode === "hybrid" ? SATELLITE_STYLE : DARK_STYLE;
+}
+
+function toggleMode(mode: MapMode): MapMode {
+  return mode === "satellite" || mode === "hybrid" ? "roadmap" : "satellite";
 }

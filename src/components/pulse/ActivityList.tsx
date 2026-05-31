@@ -1,113 +1,219 @@
 import React from "react";
-import { ChevronRight, Footprints, Timer } from "lucide-react";
+import { ChevronRight, Flame, Trophy, Zap } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
 import { GoogleMapView } from "@/components/GoogleMapView";
-import { fmtDuracao, type TreinoRegistro } from "@/lib/treino-history";
-import { kmTreino } from "@/lib/pulse-data";
+import type { TreinoRegistro } from "@/lib/treino-history";
 import { demoPath } from "@/lib/pulse-design-data";
+
+type Quality = "Excelente" | "Muito bom" | "Bom";
+
+type ActivityMetric = {
+  label: string;
+  value: string;
+  isPr?: boolean;
+};
+
+type ActivityCardData = {
+  id: string;
+  title: string;
+  turn: "Manha" | "Tarde" | "Noite" | "Madrugada";
+  date: string;
+  time: string;
+  metrics: ActivityMetric[];
+  quality: Quality;
+  prBanner?: {
+    icon: "trophy" | "flame" | "zap";
+    text: string;
+    detail?: string;
+  };
+  achievement?: {
+    icon: "flame" | "zap" | "trophy";
+    text: React.ReactNode;
+  };
+  route: [number, number][];
+};
 
 function shiftedPath(index: number): [number, number][] {
   const shift = index * 0.006;
   return demoPath.map(([lat, lng]) => [lat + shift, lng - shift]) as [number, number][];
 }
 
-const ActivityRow = React.memo(function ActivityRow({
-  treino,
-  showBadge,
-  index,
-}: {
-  treino: TreinoRegistro;
-  showBadge: boolean;
-  index: number;
-}) {
-  const km = kmTreino(treino);
-  const path = treino.coordenadas?.length ? treino.coordenadas : shiftedPath(index);
-  const title = `${Math.round(km || [5, 10, 7][index] || 5)}km • ${
-    index === 1 ? "Longão" : index === 2 ? "Tempo Run" : "Rodagem"
-  }`;
-  const pace = km > 0 ? (treino.duracaoSeg ?? 0) / 60 / km : 5.35;
-  const paceStr = `${Math.floor(pace)}'${String(Math.round((pace % 1) * 60)).padStart(2, "0")}” /km`;
-  const date = index === 0 ? "Hoje • 07:15" : index === 1 ? "Ontem • 06:48" : "Sáb • 07:02";
+const activities: ActivityCardData[] = [
+  {
+    id: "mock-rodagem-matinal",
+    title: "Rodagem matinal",
+    turn: "Manha",
+    date: "Hoje",
+    time: "07:15",
+    metrics: [
+      { label: "KM", value: "5,02" },
+      { label: "PACE", value: "5'21\"", isPr: true },
+      { label: "TEMPO", value: "26:52" },
+    ],
+    quality: "Muito bom",
+    prBanner: {
+      icon: "trophy",
+      text: "Novo recorde de pace",
+      detail: "melhor em 30 dias",
+    },
+    achievement: {
+      icon: "flame",
+      text: (
+        <>
+          Sequencia de <span className="achievement-highlight">4 dias</span> ativa
+        </>
+      ),
+    },
+    route: shiftedPath(0),
+  },
+  {
+    id: "mock-longao-segunda",
+    title: "Longao de segunda",
+    turn: "Manha",
+    date: "Ontem",
+    time: "06:48",
+    metrics: [
+      { label: "KM", value: "10,01" },
+      { label: "PACE", value: "5'08\"" },
+      { label: "TEMPO", value: "51:35" },
+    ],
+    quality: "Excelente",
+    achievement: {
+      icon: "trophy",
+      text: (
+        <>
+          <span className="achievement-highlight">2a corrida</span> acima de 10km esse mes
+        </>
+      ),
+    },
+    route: shiftedPath(1),
+  },
+  {
+    id: "mock-tempo-run-parque",
+    title: "Tempo Run no parque",
+    turn: "Manha",
+    date: "Sab",
+    time: "07:02",
+    metrics: [
+      { label: "KM", value: "7,01" },
+      { label: "PACE", value: "4'58\"" },
+      { label: "TEMPO", value: "34:42" },
+    ],
+    quality: "Muito bom",
+    route: shiftedPath(2),
+  },
+];
+
+const turnStyles: Record<ActivityCardData["turn"], string> = {
+  Manha: "border-[#FFB80033] bg-[#1A1500] text-[#FFB800]",
+  Tarde: "border-[#FF6B0033] bg-[#1A0A00] text-[#FF6B00]",
+  Noite: "border-[#8888FF33] bg-[#0A0A1A] text-[#8888FF]",
+  Madrugada: "border-[#6666CC33] bg-[#0A0A14] text-[#6666CC]",
+};
+
+const qualityStyles: Record<Quality, string> = {
+  Excelente: "badge-excelente",
+  "Muito bom": "badge-muito-bom",
+  Bom: "badge-bom",
+};
+
+function IconByKind({ kind, className }: { kind: "trophy" | "flame" | "zap"; className: string }) {
+  if (kind === "flame") return <Flame className={className} strokeWidth={1.8} />;
+  if (kind === "zap") return <Zap className={className} strokeWidth={1.8} />;
+  return <Trophy className={className} strokeWidth={1.8} />;
+}
+
+const ActivityCard = React.memo(function ActivityCard({ activity }: { activity: ActivityCardData }) {
+  const navigate = useNavigate();
 
   return (
-    <div className="flex items-center gap-3 py-4 first:pt-0 last:pb-0">
-      <GoogleMapView
-        paths={[path]}
-        className="h-[72px] w-[72px] shrink-0 overflow-hidden rounded-lg bg-[#0A0A0A]"
-        interactive={false}
-        showControls={false}
-        defaultMode="roadmap"
-        strokeWeight={3}
-        ariaLabel="Miniatura do mapa da atividade"
-      />
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-base font-bold leading-tight text-white">{title}</div>
-        <div className="mt-1 truncate text-[13px] text-[#888888]">{date}</div>
-        <div className="mt-3 flex gap-x-3 overflow-hidden text-xs text-[#888888]">
-          <span className="flex min-w-0 items-center gap-1.5 truncate">
-            <Footprints className="h-4 w-4" strokeWidth={1.5} />{" "}
-            <span className="truncate">{km ? km.toFixed(2).replace(".", ",") : "5,02"} km</span>
-          </span>
-          <span className="flex min-w-0 items-center gap-1.5 truncate">
-            <Timer className="h-4 w-4" strokeWidth={1.5} />{" "}
-            <span className="truncate">{paceStr}</span>
-          </span>
-          <span className="flex min-w-0 items-center gap-1.5 truncate">
-            <Timer className="h-4 w-4" strokeWidth={1.5} />{" "}
-            <span className="truncate">{fmtDuracao(treino.duracaoSeg ?? 0).slice(3)}</span>
-          </span>
+    <button
+      type="button"
+      className="activity-card block w-full text-left"
+      onClick={() =>
+        navigate({
+          to: "/atividades",
+          search: { activityId: activity.id },
+        })
+      }
+    >
+      {activity.prBanner && (
+        <div className="pr-banner">
+          <IconByKind kind={activity.prBanner.icon} className="pr-banner-icon h-3.5 w-3.5" />
+          <span className="pr-banner-text">{activity.prBanner.text}</span>
+          {activity.prBanner.detail && (
+            <span className="pr-banner-detail">{activity.prBanner.detail}</span>
+          )}
+        </div>
+      )}
+
+      <div className="activity-card-body">
+        <GoogleMapView
+          paths={[activity.route]}
+          className="activity-map-thumb"
+          interactive={false}
+          showControls={false}
+          defaultMode="roadmap"
+          strokeColor="#C8FF00"
+          strokeWeight={3}
+          ariaLabel={`Miniatura do mapa de ${activity.title}`}
+        />
+
+        <div className="activity-card-info">
+          <div className="activity-title-row">
+            <div className="activity-title">{activity.title}</div>
+            <span className={`activity-turn-badge border ${turnStyles[activity.turn]}`}>
+              {activity.turn}
+            </span>
+          </div>
+
+          <div className="activity-datetime">
+            <span>{activity.date}</span>
+            <span className="text-[#555555]">•</span>
+            <span>{activity.time}</span>
+          </div>
+
+          <div className="activity-metrics">
+            {activity.metrics.map((metric) => (
+              <div key={metric.label} className="activity-metric">
+                <span className={`activity-metric-value ${metric.isPr ? "text-[#C8FF00]" : ""}`}>
+                  {metric.value}
+                </span>
+                <span className="activity-metric-label">{metric.label}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="activity-quality-row">
+            <span className={`activity-quality-badge ${qualityStyles[activity.quality]}`}>
+              {activity.quality}
+            </span>
+            <ChevronRight className="activity-arrow h-4 w-4" strokeWidth={1.8} />
+          </div>
         </div>
       </div>
-      {showBadge && (
-        <span className="quality-badge hidden shrink-0 sm:inline-flex">
-          {index === 1 ? "Excelente" : "Muito bom"}
-        </span>
+
+      {activity.achievement && (
+        <div className="activity-achievement">
+          <IconByKind kind={activity.achievement.icon} className="achievement-icon h-3.5 w-3.5" />
+          <span className="achievement-text">{activity.achievement.text}</span>
+        </div>
       )}
-      <ChevronRight className="h-5 w-5 shrink-0 text-[#555555]" strokeWidth={1.8} />
-    </div>
+    </button>
   );
 });
 
 export const ActivityList = React.memo(function ActivityList({
-  treinos,
-  showBadge = true,
   limit = 3,
 }: {
   treinos: TreinoRegistro[];
   showBadge?: boolean;
   limit?: number;
 }) {
-  const fallback: TreinoRegistro[] = [
-    {
-      id: "mock-5",
-      data: new Date().toISOString(),
-      modalidade: "running",
-      duracaoSeg: 1612,
-      distanciaMetros: 5020,
-      caloriasKcal: 420,
-    },
-    {
-      id: "mock-10",
-      data: new Date(Date.now() - 86_400_000).toISOString(),
-      modalidade: "running",
-      duracaoSeg: 3085,
-      distanciaMetros: 10010,
-      caloriasKcal: 840,
-    },
-    {
-      id: "mock-7",
-      data: new Date(Date.now() - 3 * 86_400_000).toISOString(),
-      modalidade: "running",
-      duracaoSeg: 2082,
-      distanciaMetros: 7010,
-      caloriasKcal: 590,
-    },
-  ];
-  const items = (treinos.length ? treinos : fallback).slice(0, limit);
-
   return (
-    <div className="divide-y divide-white/[0.06]">
-      {items.map((treino, index) => (
-        <ActivityRow key={treino.id} treino={treino} showBadge={showBadge} index={index} />
+    <div className="dashboard-activities space-y-3">
+      {activities.slice(0, limit).map((activity) => (
+        <ActivityCard key={activity.id} activity={activity} />
       ))}
     </div>
   );

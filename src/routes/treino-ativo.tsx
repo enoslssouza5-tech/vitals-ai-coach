@@ -13,7 +13,7 @@ import {
   salvarTreino,
 } from "@/lib/treino-history";
 import { gerarAnaliseCoach } from "@/lib/coach.functions";
-import { snapToRoad, type LatLngTuple } from "@/lib/google-maps";
+import type { LatLngTuple } from "@/lib/google-maps";
 
 const RouteMap = lazy(() => import("@/components/RouteMap").then((m) => ({ default: m.RouteMap })));
 
@@ -101,13 +101,12 @@ function TreinoAtivo() {
           }
         }
         ultimoPonto.current = p;
-        setPontos((arr) => {
-          const next = [...arr, p];
-          void snapToRoad(next).then((snapped) => {
-            if (snapped.length >= next.length) setPontos(snapped);
-          });
-          return next;
-        });
+        setPontos((arr) =>
+          [...arr, p].filter((_, index, route) => {
+            if (route.length <= 500) return true;
+            return index === route.length - 1 || index % Math.ceil(route.length / 500) === 0;
+          }),
+        );
         setGpsErro(null);
       },
       (err) => {
