@@ -12,11 +12,7 @@ export const DesignCard = React.memo(function DesignCard({
   ...props
 }: DesignCardProps) {
   return (
-    <motion.section 
-      whileTap={{ scale: 0.98 }}
-      className={`pulse-card overflow-hidden p-4 ${className}`}
-      {...props}
-    >
+    <motion.section className={`pulse-card overflow-hidden p-5 ${className}`} {...props}>
       {children}
     </motion.section>
   );

@@ -51,7 +51,9 @@ function Historico() {
       <PageActionHeader title="Atividades" />
       <DesignCard>
         <SectionTitle title="Atividades registradas" />
-        {isLoading && <p className="py-8 text-center text-sm text-[#888888]">Carregando...</p>}
+        {isLoading && (
+          <p className="py-8 text-center text-sm text-[#888888]">Avaliando sua semana...</p>
+        )}
         {!isLoading && (activities?.length ?? 0) === 0 && (
           <div className="py-8 text-center">
             <p className="text-sm text-[#888888]">Nenhuma atividade registrada ainda.</p>
