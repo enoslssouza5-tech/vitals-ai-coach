@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from "@tanstack/react-router";
+import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import type React from "react";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -15,8 +15,11 @@ import {
   dataISO,
   lerPerfil,
   lerRecuperacao,
+  kmTreino,
   obterClimaAtual,
+  treinosDaSemana,
   ultimoTreino,
+  type RecuperacaoDia,
   type ClimaAtual,
 } from "@/lib/pulse-data";
 import { listarTreinos } from "@/lib/treino-history";
@@ -27,16 +30,22 @@ import {
   Cloud,
   CloudRain,
   Droplets,
+  Flag,
   Footprints,
   Info,
   Moon,
+  Shield,
   ShieldCheck,
   Sparkles,
+  Star,
   Sun,
   Target,
   Thermometer,
+  Trophy,
   TrendingUp,
   Wind,
+  X,
+  Zap,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -64,6 +73,10 @@ function Dashboard() {
   const perfil = useMemo(() => lerPerfil(), []);
   const recuperacao = useMemo(() => lerRecuperacao().at(-1), []);
   const treinos = useMemo(() => listarTreinos(), []);
+  const currentWeekKm = useMemo(
+    () => treinosDaSemana(treinos).reduce((sum, treino) => sum + kmTreino(treino), 0),
+    [treinos],
+  );
   const firstName = (perfil.nome || "Atleta").split(" ")[0];
 
   useEffect(() => {
@@ -96,6 +109,31 @@ function Dashboard() {
       <AppHeader title={<>Bom dia, {firstName}</>} subtitle="Seu painel de evolucao esta pronto." />
 
       <motion.div className="space-y-4" variants={containerVariants} initial={false} animate="show">
+        <DesignCard variants={itemVariants}>
+          <SectionTitle
+            title="Semana"
+            icon={<Calendar className="h-5 w-5 text-[#C8FF00]" strokeWidth={1.5} />}
+            action={
+              <span className="flex items-center gap-1">
+                Detalhes <ChevronRight className="h-4 w-4" />
+              </span>
+            }
+          />
+          <WeeklySummary />
+        </DesignCard>
+
+        <DesignCard variants={itemVariants} className="p-0">
+          <WeatherCard city={perfil.cidade || "Sao Paulo"} />
+        </DesignCard>
+
+        {clima && clima.temp > 30 && (
+          <DesignCard variants={itemVariants} className="border-[#C8FF00]/20 py-4">
+            <p className="text-sm leading-relaxed text-[#A0A0A0]">
+              Calor alto hoje: {clima.temp} C. Hidrate-se antes do treino.
+            </p>
+          </DesignCard>
+        )}
+
         <DesignCard variants={itemVariants} className="border-[#C8FF00]/25">
           <div className="mb-5 flex items-start justify-between gap-4">
             <div className="min-w-0">
@@ -124,36 +162,6 @@ function Dashboard() {
         </DesignCard>
 
         <DesignCard variants={itemVariants}>
-          <SectionTitle
-            title="Semana"
-            icon={<Calendar className="h-5 w-5 text-[#C8FF00]" strokeWidth={1.5} />}
-            action={
-              <span className="flex items-center gap-1">
-                Detalhes <ChevronRight className="h-4 w-4" />
-              </span>
-            }
-          />
-          <WeeklySummary />
-        </DesignCard>
-
-        <DesignCard variants={itemVariants} className="p-0">
-          <WeatherCard city={perfil.cidade || "Sao Paulo"} />
-        </DesignCard>
-
-        {clima && clima.temp > 30 && (
-          <DesignCard variants={itemVariants} className="border-[#C8FF00]/20 py-4">
-            <p className="text-sm leading-relaxed text-[#A0A0A0]">
-              Calor alto hoje: {clima.temp} C. Hidrate-se antes do treino.
-            </p>
-          </DesignCard>
-        )}
-
-        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
-          <ReadinessCard score={78} />
-          <WeeklyFocusCard currentKm={42.6} targetKm={50} />
-        </motion.div>
-
-        <DesignCard variants={itemVariants}>
           <div className="activities-header">
             <h2 className="activities-title">Atividades recentes</h2>
             <Link to="/atividades" className="activities-see-all">
@@ -162,6 +170,11 @@ function Dashboard() {
           </div>
           <ActivityList treinos={treinos} showBadge limit={3} />
         </DesignCard>
+
+        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
+          <ReadinessCard fallbackCheckin={recuperacao} />
+          <WeeklyFocusCard currentKm={currentWeekKm} defaultTargetKm={perfil.metaSemanalKm || 20} />
+        </motion.div>
       </motion.div>
     </AppScreen>
   );
@@ -217,96 +230,507 @@ function SignalMetric({
   );
 }
 
-function ReadinessCard({ score }: { score: number }) {
-  const markers = [
-    { label: "Sono", value: "7h20", icon: Moon },
-    { label: "Recup.", value: "84%", icon: ActivityIcon },
-  ];
+type CheckinToday = {
+  data: string;
+  sono: number;
+  energia?: number;
+  dor?: number;
+  score: number;
+};
+
+function ReadinessCard({ fallbackCheckin }: { fallbackCheckin?: RecuperacaoDia }) {
+  const navigate = useNavigate();
+  const [checkin, setCheckin] = useState<CheckinToday | null>(null);
+  const [animatedScore, setAnimatedScore] = useState(0);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+
+  useEffect(() => {
+    const today = dataISO(new Date());
+    const todayCheckin = readTodayCheckin(today) ?? (fallbackCheckin?.data === today ? fallbackCheckin : null);
+    setCheckin(todayCheckin);
+  }, [fallbackCheckin]);
+
+  useEffect(() => {
+    if (!checkin) {
+      setAnimatedScore(0);
+      return;
+    }
+    const timer = window.setTimeout(() => setAnimatedScore(checkin.score), 300);
+    return () => window.clearTimeout(timer);
+  }, [checkin]);
+
+  if (!checkin) {
+    return (
+      <button
+        type="button"
+        className="prontidao-card prontidao-card-empty card-interactive"
+        onClick={() => navigate({ to: "/saude" })}
+      >
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-black uppercase tracking-[2px] text-[#555555]">
+            PRONTIDÃO
+          </span>
+          <Shield className="h-3.5 w-3.5 text-[#555555]" strokeWidth={1.7} />
+        </div>
+        <div className="grid place-items-center">
+          <svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true">
+            <circle
+              className="ring-empty-stroke"
+              cx="32"
+              cy="32"
+              r="26"
+              fill="none"
+              stroke="#1A1A1A"
+              strokeWidth="6"
+            />
+            <text x="32" y="40" textAnchor="middle" className="fill-[#333333] text-[22px] font-black">
+              ?
+            </text>
+          </svg>
+        </div>
+        <p className="text-center text-[13px] leading-snug text-[#888888]">
+          Como seu corpo está hoje?
+        </p>
+        <span className="checkin-cta-btn">FAZER CHECK-IN →</span>
+      </button>
+    );
+  }
+
+  const scoreColor = readinessColor(checkin.score);
+  const circumference = 2 * Math.PI * 28;
+  const recommendation = readinessRecommendation(checkin.score);
 
   return (
-    <DesignCard className="h-full min-h-[220px]">
-      <div className="mb-4 flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[15px] font-black text-white">
-            Prontidao <Info className="h-4 w-4 shrink-0 text-[#888888]" strokeWidth={1.5} />
-          </div>
-          <div className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#555555]">
-            Hoje
-          </div>
-        </div>
-        <ShieldCheck className="h-5 w-5 shrink-0 text-[#C8FF00]" strokeWidth={1.7} />
-      </div>
-
-      <div className="flex items-end gap-2">
-        <div className="text-[36px] font-black leading-none text-[#C8FF00]">{score}</div>
-        <div className="pb-1 text-xs font-black text-[#888888]">/100</div>
-      </div>
-      <p className="mt-3 text-[13px] leading-snug text-[#888888]">
-        Corpo pronto para rodagem moderada. Evite intensidade maxima hoje.
-      </p>
-
-      <div className="mt-4 grid grid-cols-2 gap-2">
-        {markers.map(({ label, value, icon: Icon }) => (
-          <div key={label} className="rounded-2xl bg-[#0A0A0A] p-2">
-            <Icon className="h-4 w-4 text-[#C8FF00]" strokeWidth={1.7} />
-            <div className="mt-2 text-sm font-black text-white">{value}</div>
-            <div className="text-[10px] font-black uppercase tracking-[0.1em] text-[#888888]">
-              {label}
+    <>
+      <button
+        type="button"
+        className="prontidao-card prontidao-card-filled card-interactive"
+        onClick={() => setDetailsOpen(true)}
+        style={{
+          borderColor: readinessBorder(checkin.score),
+          "--score-color": scoreColor,
+        } as React.CSSProperties}
+      >
+        <span className="prontidao-glow" style={{ background: scoreColor }} />
+        <div className="relative flex items-start justify-between gap-2">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-[2px] text-[#555555]">
+              PRONTIDÃO
+            </div>
+            <div className="mt-1 text-[9px] font-black uppercase tracking-[1.5px] text-[#333333]">
+              HOJE
             </div>
           </div>
-        ))}
-      </div>
-    </DesignCard>
+          <Shield className="h-3.5 w-3.5" strokeWidth={1.7} style={{ color: scoreColor }} />
+        </div>
+        <div className="relative grid place-items-center">
+          <svg width="72" height="72" viewBox="0 0 72 72" aria-hidden="true">
+            <circle cx="36" cy="36" r="28" fill="none" stroke="#1A1A1A" strokeWidth="6" />
+            <circle
+              className="score-ring-fill"
+              cx="36"
+              cy="36"
+              r="28"
+              fill="none"
+              strokeWidth="6"
+              strokeDasharray={circumference}
+              strokeDashoffset={circumference * (1 - animatedScore / 100)}
+              transform="rotate(-90 36 36)"
+            />
+          </svg>
+          <div className="absolute text-center">
+            <span className="text-[24px] font-black leading-none" style={{ color: scoreColor }}>
+              {checkin.score}
+            </span>
+            <span className="ml-0.5 text-[10px] font-black text-[#555555]">/100</span>
+          </div>
+        </div>
+        <p className="relative text-[12px] leading-snug text-[#CCCCCC]">{recommendation}</p>
+        <div className="prontidao-metrics">
+          <ReadinessMetric icon={<Moon />} value={`${checkin.sono}h`} label="SONO" />
+          <ReadinessMetric icon={<ActivityIcon />} value={`${checkin.score}%`} label="RECUP." />
+        </div>
+      </button>
+      {detailsOpen && (
+        <DashboardSheet title="Check-in de hoje" onClose={() => setDetailsOpen(false)}>
+          <div className="grid grid-cols-2 gap-2">
+            <SheetStat label="Sono" value={`${checkin.sono}h`} />
+            <SheetStat label="Score" value={`${checkin.score}/100`} />
+            <SheetStat label="Energia" value={`${checkin.energia ?? "--"}/10`} />
+            <SheetStat label="Dor" value={`${checkin.dor ?? "--"}/10`} />
+          </div>
+          <button
+            type="button"
+            className="mt-4 h-11 w-full rounded-xl bg-[#C8FF00] text-xs font-black uppercase tracking-[1px] text-black"
+            onClick={() => navigate({ to: "/saude" })}
+          >
+            Refazer check-in
+          </button>
+        </DashboardSheet>
+      )}
+    </>
   );
 }
 
-function WeeklyFocusCard({ currentKm, targetKm }: { currentKm: number; targetKm: number }) {
-  const progress = Math.min(100, Math.round((currentKm / targetKm) * 100));
-  const remaining = Math.max(0, targetKm - currentKm);
+function WeeklyFocusCard({
+  currentKm,
+}: {
+  currentKm: number;
+  defaultTargetKm: number;
+}) {
+  const navigate = useNavigate();
+  const [goalKm, setGoalKm] = useState<number | null>(null);
+  const [draftKm, setDraftKm] = useState(40);
+  const [animatedProgress, setAnimatedProgress] = useState(0);
+  const [configOpen, setConfigOpen] = useState(false);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+
+  useEffect(() => {
+    const savedGoal = readWeeklyGoal();
+    setGoalKm(savedGoal);
+    if (savedGoal) setDraftKm(savedGoal);
+  }, []);
+
+  const realProgress = goalKm ? Math.min(140, Math.round((currentKm / goalKm) * 100)) : 0;
+  useEffect(() => {
+    if (!goalKm) {
+      setAnimatedProgress(0);
+      return;
+    }
+    const timer = window.setTimeout(() => setAnimatedProgress(realProgress), 400);
+    return () => window.clearTimeout(timer);
+  }, [goalKm, realProgress]);
+
+  const saveGoal = () => {
+    const nextGoal = Math.max(5, Math.min(200, draftKm));
+    localStorage.setItem("pulse_weekly_goal", JSON.stringify({ km: nextGoal, updatedAt: new Date().toISOString() }));
+    setGoalKm(nextGoal);
+    setConfigOpen(false);
+    setOptionsOpen(false);
+  };
+
+  if (!goalKm) {
+    return (
+      <>
+        <button
+          type="button"
+          className="meta-card meta-card-empty card-interactive"
+          onClick={() => setConfigOpen(true)}
+        >
+          <Target className="h-7 w-7 text-[#333333]" strokeWidth={1.7} />
+          <div className="text-[14px] font-semibold text-white">Definir meta</div>
+          <p className="max-w-[130px] text-center text-[12px] leading-snug text-[#555555]">
+            Quanto quer correr essa semana?
+          </p>
+          <span className="set-goal-btn">CONFIGURAR</span>
+        </button>
+        {configOpen && (
+          <GoalConfigSheet
+            draftKm={draftKm}
+            setDraftKm={setDraftKm}
+            onClose={() => setConfigOpen(false)}
+            onSave={saveGoal}
+          />
+        )}
+      </>
+    );
+  }
+
+  const remaining = Math.max(0, goalKm - currentKm);
+  const progressColor = weeklyProgressColor(realProgress);
+  const next = weeklyNextStep(realProgress, remaining);
+  const completed = realProgress >= 100;
+  const NextIcon = next.icon;
 
   return (
-    <DesignCard className="h-full min-h-[220px]">
-      <div className="mb-4 flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[15px] font-black text-white">
-            Meta <Info className="h-4 w-4 shrink-0 text-[#888888]" strokeWidth={1.5} />
+    <>
+      <button
+        type="button"
+        className="meta-card meta-card-filled card-interactive"
+        onClick={() => setOptionsOpen(true)}
+        style={{
+          borderColor: completed ? "rgba(255,215,0,0.3)" : undefined,
+          "--meta-color": progressColor,
+        } as React.CSSProperties}
+      >
+        {completed && <span className="meta-complete-glow" />}
+        <div className="relative flex items-start justify-between gap-2">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-[2px] text-[#555555]">
+              META
+            </div>
+            <div className="mt-1 text-[9px] font-black uppercase tracking-[1.5px] text-[#333333]">
+              {goalKm} KM
+            </div>
           </div>
-          <div className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#555555]">
-            50 km
+          <Target className="h-3.5 w-3.5 text-[#C8FF00]" strokeWidth={1.7} />
+        </div>
+        {completed && <div className="meta-complete-badge">✦ META BATIDA</div>}
+        <div className="meta-progress-display">
+          <div className="meta-km-done" style={{ color: completed ? "#FFD700" : undefined }}>
+            {formatKm(currentKm)} <span>km</span>
+          </div>
+          <div className="meta-progress-bar-track">
+            <div
+              className="meta-progress-bar-fill"
+              style={{ width: `${Math.min(100, animatedProgress)}%`, background: progressColor }}
+            />
+          </div>
+          <div className="meta-progress-labels">
+            <span className="meta-percent" style={{ color: progressColor }}>
+              {realProgress}%
+            </span>
+            <span className="meta-remaining">
+              {completed ? "concluída" : `${formatKm(remaining)} km restantes`}
+            </span>
           </div>
         </div>
-        <Target className="h-5 w-5 shrink-0 text-[#C8FF00]" strokeWidth={1.7} />
-      </div>
-
-      <div className="flex items-end gap-1">
-        <div className="text-[32px] font-black leading-none text-white">
-          {currentKm.toFixed(1).replace(".", ",")}
+        <div className="meta-next-card">
+          <span className="meta-next-icon">
+            <NextIcon />
+          </span>
+          <span className="meta-next-text">
+            <span className="meta-next-label">Próximo</span>
+            <span className="meta-next-desc">{next.text}</span>
+          </span>
         </div>
-        <div className="pb-1 text-sm font-black text-[#888888]">km</div>
-      </div>
-      <div className="mt-4 h-2 overflow-hidden rounded-full bg-[#333333]">
-        <div className="h-full rounded-full bg-[#C8FF00]" style={{ width: `${progress}%` }} />
-      </div>
-      <div className="mt-3 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.08em] text-[#888888]">
-        <span>{progress}%</span>
-        <span>{remaining.toFixed(1).replace(".", ",")} km</span>
-      </div>
-
-      <div className="mt-4 rounded-2xl bg-[#0A0A0A] p-3">
-        <div className="flex items-center gap-2 text-[13px] font-black text-white">
-          <Footprints className="h-4 w-4 text-[#C8FF00]" strokeWidth={1.7} />
-          Proximo
-        </div>
-        <div className="mt-1 text-xs leading-snug text-[#888888]">
-          7 km leve para fechar a semana sem sobrecarga.
-        </div>
-      </div>
-    </DesignCard>
+      </button>
+      {configOpen && (
+        <GoalConfigSheet
+          draftKm={draftKm}
+          setDraftKm={setDraftKm}
+          onClose={() => setConfigOpen(false)}
+          onSave={saveGoal}
+        />
+      )}
+      {optionsOpen && (
+        <DashboardSheet title="Meta semanal" onClose={() => setOptionsOpen(false)}>
+          <button
+            type="button"
+            className="h-11 w-full rounded-xl bg-[#C8FF00] text-xs font-black uppercase tracking-[1px] text-black"
+            onClick={() => {
+              setOptionsOpen(false);
+              setConfigOpen(true);
+            }}
+          >
+            Ajustar meta
+          </button>
+          <button
+            type="button"
+            className="mt-2 h-11 w-full rounded-xl bg-[#1A1A1A] text-xs font-black uppercase tracking-[1px] text-white"
+            onClick={() => navigate({ to: "/perfil" })}
+          >
+            Ver histórico de metas
+          </button>
+          <button
+            type="button"
+            className="mt-2 h-11 w-full rounded-xl text-xs font-black uppercase tracking-[1px] text-[#888888]"
+            onClick={() => setOptionsOpen(false)}
+          >
+            Cancelar
+          </button>
+        </DashboardSheet>
+      )}
+    </>
   );
 }
 
 function ActivityIcon(props: React.ComponentProps<typeof TrendingUp>) {
   return <TrendingUp {...props} />;
+}
+
+function ReadinessMetric({
+  icon,
+  value,
+  label,
+}: {
+  icon: React.ReactNode;
+  value: string;
+  label: string;
+}) {
+  return (
+    <div className="prontidao-metric">
+      <span className="prontidao-metric-icon">{icon}</span>
+      <span className="prontidao-metric-value">{value}</span>
+      <span className="prontidao-metric-label">{label}</span>
+    </div>
+  );
+}
+
+function DashboardSheet({
+  title,
+  children,
+  onClose,
+}: {
+  title: string;
+  children: React.ReactNode;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-[300] flex items-end justify-center bg-black/60 px-4 pb-4">
+      <div className="w-full max-w-[358px] rounded-2xl border border-white/[0.06] bg-[#111111] p-4 shadow-2xl">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-base font-black text-white">{title}</h2>
+          <button
+            type="button"
+            className="grid h-9 w-9 place-items-center rounded-full bg-[#1A1A1A] text-[#888888]"
+            onClick={onClose}
+            aria-label="Fechar"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function GoalConfigSheet({
+  draftKm,
+  setDraftKm,
+  onClose,
+  onSave,
+}: {
+  draftKm: number;
+  setDraftKm: (value: number) => void;
+  onClose: () => void;
+  onSave: () => void;
+}) {
+  return (
+    <DashboardSheet title="Minha meta semanal" onClose={onClose}>
+      <label className="block">
+        <span className="text-[10px] font-black uppercase tracking-[1.6px] text-[#555555]">
+          Quilômetros
+        </span>
+        <div className="mt-2 flex items-center gap-3">
+          <input
+            type="range"
+            min={5}
+            max={200}
+            value={draftKm}
+            onChange={(event) => setDraftKm(Number(event.target.value))}
+            className="min-w-0 flex-1 accent-[#C8FF00]"
+          />
+          <input
+            type="number"
+            min={5}
+            max={200}
+            value={draftKm}
+            onChange={(event) => setDraftKm(Number(event.target.value))}
+            className="h-11 w-20 rounded-xl border border-white/[0.08] bg-[#0A0A0A] px-3 text-center text-sm font-black text-white outline-none"
+          />
+        </div>
+      </label>
+      <div className="mt-4 grid grid-cols-4 gap-2">
+        {[20, 40, 60, 80].map((km) => (
+          <button
+            key={km}
+            type="button"
+            className={`h-9 rounded-lg text-xs font-black ${
+              draftKm === km ? "bg-[#C8FF00] text-black" : "bg-[#1A1A1A] text-[#888888]"
+            }`}
+            onClick={() => setDraftKm(km)}
+          >
+            {km} km
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        className="mt-5 h-12 w-full rounded-xl bg-[#C8FF00] text-xs font-black uppercase tracking-[1px] text-black"
+        onClick={onSave}
+      >
+        Salvar meta
+      </button>
+    </DashboardSheet>
+  );
+}
+
+function SheetStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-[#0A0A0A] p-3">
+      <div className="text-[10px] font-black uppercase tracking-[1px] text-[#555555]">{label}</div>
+      <div className="mt-2 text-lg font-black text-white">{value}</div>
+    </div>
+  );
+}
+
+function readTodayCheckin(today: string): CheckinToday | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem("pulse_checkin_today");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<CheckinToday> & {
+      date?: string;
+      sleep?: number;
+      recovery?: number;
+    };
+    const date = parsed.data ?? parsed.date;
+    if (date !== today) return null;
+    const score = Number(parsed.score ?? parsed.recovery ?? 0);
+    return {
+      data: today,
+      sono: Number(parsed.sono ?? parsed.sleep ?? 0),
+      energia: parsed.energia,
+      dor: parsed.dor,
+      score: Math.max(0, Math.min(100, Math.round(score))),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function readWeeklyGoal() {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem("pulse_weekly_goal");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as number | { km?: number; targetKm?: number };
+    const km = typeof parsed === "number" ? parsed : (parsed.km ?? parsed.targetKm);
+    return km ? Math.max(5, Math.min(200, Number(km))) : null;
+  } catch {
+    return null;
+  }
+}
+
+function readinessColor(score: number) {
+  if (score >= 80) return "#C8FF00";
+  if (score >= 60) return "#FF9800";
+  return "#FF4444";
+}
+
+function readinessBorder(score: number) {
+  if (score >= 80) return "rgba(200,255,0,0.25)";
+  if (score >= 60) return "rgba(255,152,0,0.25)";
+  return "rgba(255,68,68,0.25)";
+}
+
+function readinessRecommendation(score: number) {
+  if (score >= 90) return "Dia perfeito para bater recordes.";
+  if (score >= 80) return "Ótima prontidão. Treino forte hoje.";
+  if (score >= 70) return "Bom para treino moderado.";
+  if (score >= 60) return "Prefira ritmo leve hoje.";
+  return "Seu corpo pede recuperação.";
+}
+
+function weeklyProgressColor(progress: number) {
+  if (progress >= 100) return "#FFD700";
+  if (progress >= 80) return "#C8FF00";
+  if (progress >= 50) return "#C8FF00";
+  return "#FF9800";
+}
+
+function weeklyNextStep(progress: number, remainingKm: number) {
+  if (progress <= 30) return { icon: Zap, text: "Começar hoje com 7 km leves" };
+  if (progress <= 60) return { icon: TrendingUp, text: "Você está no ritmo certo" };
+  if (progress <= 85) return { icon: Flag, text: `${formatKm(remainingKm)} km para bater a meta essa semana` };
+  if (progress < 100) return { icon: Star, text: `Quase lá! ${formatKm(remainingKm)} km para completar` };
+  return { icon: Trophy, text: "Meta da semana concluída!" };
+}
+
+function formatKm(value: number) {
+  return value.toFixed(1).replace(".", ",");
 }
 
 type WeatherDay = {
@@ -338,12 +762,22 @@ function WeatherCard({ city }: { city: string }) {
   useEffect(() => {
     let cancelled = false;
     async function loadWeather() {
+      let coords: { lat: number; lon: number } | null = null;
       if (!apiKey) {
-        setLoading(false);
+        try {
+          coords = await getWeatherCoords(city);
+          if (!coords) throw new Error("coords");
+          const fallback = await fetchOpenMeteoWeather(coords);
+          if (!cancelled) setWeather(fallback);
+        } catch {
+          if (!cancelled) setWeather(null);
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
         return;
       }
       try {
-        const coords = await getWeatherCoords(city);
+        coords = await getWeatherCoords(city);
         const params = new URLSearchParams({
           appid: apiKey,
           units: "metric",
@@ -391,14 +825,23 @@ function WeatherCard({ city }: { city: string }) {
           forecast: buildForecast(forecast.list ?? []),
         });
       } catch {
-        if (!cancelled) setWeather(null);
+        try {
+          coords = coords ?? (await getWeatherCoords(city));
+          if (!coords) throw new Error("coords");
+          const fallback = await fetchOpenMeteoWeather(coords);
+          if (!cancelled) setWeather(fallback);
+        } catch {
+          if (!cancelled) setWeather(null);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
     }
     loadWeather();
+    const interval = window.setInterval(loadWeather, 10 * 60 * 1000);
     return () => {
       cancelled = true;
+      window.clearInterval(interval);
     };
   }, [apiKey, city]);
 
@@ -406,25 +849,25 @@ function WeatherCard({ city }: { city: string }) {
   const recommendation = weather ? weatherRecommendation(weather.temp, weather.rain) : "";
 
   return (
-    <section className="rounded-2xl border border-white/[0.06] bg-[#1A1A1A] p-5">
-      <div className="mb-5 flex items-center justify-between gap-4">
-        <div>
-          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-[#C8FF00]">
+    <section className="rounded-2xl border border-white/[0.06] bg-[#1A1A1A] p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-[#C8FF00]">
             Clima inteligente
           </div>
-          <p className="mt-2 text-[13px] text-[#888888]">{city}</p>
+          <p className="mt-1 truncate text-[12px] text-[#888888]">{city}</p>
         </div>
-        <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-[#0A0A0A] text-[#C8FF00]">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#0A0A0A] text-[#C8FF00]">
           {hasWeather ? weatherIcon(weather.icon) : <Cloud className="h-6 w-6 text-[#555555]" />}
         </div>
       </div>
 
-      <div className="flex items-end gap-2">
-        <span className="text-[36px] font-black leading-none text-white">
+      <div className="mt-3 flex items-end gap-2">
+        <span className="text-[30px] font-black leading-none text-white">
           {weather ? weather.temp : "--"}
         </span>
-        <span className="pb-1 text-lg font-black text-white">C</span>
-        <p className="min-w-0 flex-1 truncate pb-1 text-[13px] text-[#888888]">
+        <span className="pb-0.5 text-base font-black text-white">C</span>
+        <p className="min-w-0 flex-1 truncate pb-1 text-[12px] text-[#888888]">
           {weather
             ? weather.condition
             : loading
@@ -433,7 +876,7 @@ function WeatherCard({ city }: { city: string }) {
         </p>
       </div>
 
-      <div className="mt-5 grid grid-cols-4 gap-2">
+      <div className="mt-3 grid grid-cols-4 gap-2">
         <WeatherInfo
           icon={<Thermometer />}
           label="Sens."
@@ -444,24 +887,7 @@ function WeatherCard({ city }: { city: string }) {
         <WeatherInfo icon={<CloudRain />} label="Chuva" value={weather ? `${weather.rain}%` : "--"} />
       </div>
 
-      <div className="mt-5 flex gap-2 overflow-x-auto pb-1">
-        {(weather?.forecast ?? fallbackForecast()).map((day, index) => (
-          <div
-            key={`${day.label}-${index}`}
-            className={`min-w-[76px] rounded-2xl border bg-[#0A0A0A] p-3 text-center ${
-              index === 0 ? "border-[#C8FF00]" : "border-white/[0.06]"
-            }`}
-          >
-            <div className="text-xs font-black text-[#888888]">{day.label}</div>
-            <div className="mt-2 flex justify-center text-[#C8FF00]">{weatherIcon(day.icon)}</div>
-            <div className="mt-2 text-sm font-black text-white">
-              {day.max ? `${day.max} C` : "--"}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="mt-5 border-t border-white/[0.06] pt-4 text-xs leading-relaxed text-[#888888]">
+      <div className="mt-3 border-t border-white/[0.06] pt-3 text-xs leading-snug text-[#888888]">
         {weather
           ? recommendation
           : "Quando a API estiver configurada, o Pulse ajusta a recomendacao ao clima local."}
@@ -480,9 +906,9 @@ function WeatherInfo({
   value: string;
 }) {
   return (
-    <div className="min-w-0 rounded-2xl bg-[#0A0A0A] p-2">
+    <div className="min-w-0 rounded-xl bg-[#0A0A0A] px-1.5 py-2">
       <div className="flex justify-center text-[#555555] [&_svg]:h-4 [&_svg]:w-4">{icon}</div>
-      <div className="mt-2 truncate text-center text-[9px] font-black uppercase tracking-[0.08em] text-[#555555]">
+      <div className="mt-1 truncate text-center text-[9px] font-black uppercase tracking-[0.04em] text-[#555555]">
         {label}
       </div>
       <div className="mt-1 truncate text-center text-[12px] font-black text-white">{value}</div>
@@ -531,6 +957,70 @@ function buildForecast(
     });
   });
   return Array.from(byDay.values()).slice(0, 4);
+}
+
+async function fetchOpenMeteoWeather(coords: { lat: number; lon: number }): Promise<WeatherState> {
+  const url = new URL("https://api.open-meteo.com/v1/forecast");
+  url.searchParams.set("latitude", String(coords.lat));
+  url.searchParams.set("longitude", String(coords.lon));
+  url.searchParams.set("current", "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weathercode,wind_speed_10m");
+  url.searchParams.set("daily", "temperature_2m_max,weathercode");
+  url.searchParams.set("forecast_days", "4");
+  url.searchParams.set("timezone", "auto");
+
+  const response = await fetch(url.toString());
+  if (!response.ok) throw new Error("open-meteo");
+  const data = await response.json();
+  const current = data.current ?? {};
+  const daily = data.daily ?? {};
+
+  return {
+    temp: Math.round(current.temperature_2m ?? 0),
+    feelsLike: Math.round(current.apparent_temperature ?? current.temperature_2m ?? 0),
+    humidity: Math.round(current.relative_humidity_2m ?? 0),
+    wind: Math.round(current.wind_speed_10m ?? 0),
+    rain: Math.round(current.precipitation ? Math.min(100, Number(current.precipitation) * 25) : 0),
+    condition: weatherCodeLabel(current.weathercode),
+    icon: weatherCodeIcon(current.weathercode),
+    forecast: buildOpenMeteoForecast(daily),
+  };
+}
+
+function buildOpenMeteoForecast(daily: {
+  time?: string[];
+  temperature_2m_max?: number[];
+  weathercode?: number[];
+}): WeatherDay[] {
+  return (daily.time ?? []).slice(0, 4).map((day, index) => {
+    const date = new Date(`${day}T12:00:00`);
+    const label = index === 0
+      ? "Hoje"
+      : capitalize(date.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", ""));
+    return {
+      label,
+      icon: weatherCodeIcon(daily.weathercode?.[index]),
+      max: Math.round(daily.temperature_2m_max?.[index] ?? 0),
+    };
+  });
+}
+
+function weatherCodeLabel(code?: number) {
+  if (code === 0) return "Ceu limpo";
+  if ([1, 2, 3].includes(code ?? -1)) return "Parcialmente nublado";
+  if ([45, 48].includes(code ?? -1)) return "Neblina";
+  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82].includes(code ?? -1)) {
+    return "Chuva";
+  }
+  if ([95, 96, 99].includes(code ?? -1)) return "Tempestade";
+  return "Clima local";
+}
+
+function weatherCodeIcon(code?: number) {
+  if (code === 0) return "Clear";
+  if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99].includes(code ?? -1)) {
+    return "Rain";
+  }
+  return "Clouds";
 }
 
 function getWeatherCoords(city: string): Promise<{ lat: number; lon: number } | null> {

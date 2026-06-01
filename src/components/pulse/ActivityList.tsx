@@ -147,33 +147,35 @@ const ActivityCard = React.memo(function ActivityCard({ activity }: { activity: 
         </div>
       )}
 
-      <div className="activity-card-body">
+      <div className="flex flex-col p-4 gap-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="activity-title">{activity.title}</div>
+            <div className="activity-datetime mt-1">
+              <span>{activity.date}</span>
+              <span className="text-[#555555]">•</span>
+              <span>{activity.time}</span>
+            </div>
+          </div>
+          <span className={`activity-turn-badge border ${turnStyles[activity.turn]}`}>
+            {activity.turn}
+          </span>
+        </div>
+
         <GoogleMapView
           paths={[activity.route]}
-          className="activity-map-thumb"
+          className="w-full h-40 rounded-xl"
           interactive={false}
           showControls={false}
           defaultMode="roadmap"
           strokeColor="#C8FF00"
-          strokeWeight={3}
+          strokeWeight={4}
+          tilt={30}
           ariaLabel={`Miniatura do mapa de ${activity.title}`}
         />
 
-        <div className="activity-card-info">
-          <div className="activity-title-row">
-            <div className="activity-title">{activity.title}</div>
-            <span className={`activity-turn-badge border ${turnStyles[activity.turn]}`}>
-              {activity.turn}
-            </span>
-          </div>
-
-          <div className="activity-datetime">
-            <span>{activity.date}</span>
-            <span className="text-[#555555]">•</span>
-            <span>{activity.time}</span>
-          </div>
-
-          <div className="activity-metrics">
+        <div className="flex flex-col gap-3">
+          <div className="activity-metrics w-full">
             {activity.metrics.map((metric) => (
               <div key={metric.label} className="activity-metric">
                 <span className={`activity-metric-value ${metric.isPr ? "text-[#C8FF00]" : ""}`}>

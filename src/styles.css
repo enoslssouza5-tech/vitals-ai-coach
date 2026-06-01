@@ -197,6 +197,311 @@
     gap: 12px;
   }
 
+  .prontidao-card,
+  .meta-card {
+    width: 100%;
+    text-align: left;
+  }
+
+  .prontidao-card {
+    animation: cardSlideUp 0.4s ease-out forwards;
+    animation-delay: 0.1s;
+    opacity: 0;
+  }
+
+  .meta-card {
+    animation: cardSlideUp 0.4s ease-out forwards;
+    animation-delay: 0.2s;
+    opacity: 0;
+  }
+
+  .card-interactive {
+    transition:
+      transform 0.1s ease,
+      border-color 0.2s ease;
+  }
+
+  .card-interactive:active {
+    transform: scale(0.97);
+  }
+
+  .prontidao-card-empty {
+    display: flex;
+    min-height: 160px;
+    cursor: pointer;
+    flex-direction: column;
+    gap: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    background: #111111;
+    padding: 16px;
+  }
+
+  .prontidao-card-empty:active {
+    border-color: rgba(200, 255, 0, 0.3);
+    transform: scale(0.98);
+  }
+
+  .checkin-cta-btn {
+    width: 100%;
+    border: 1px solid rgba(200, 255, 0, 0.3);
+    border-radius: 10px;
+    background: #c8ff0015;
+    padding: 10px;
+    color: #c8ff00;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-align: center;
+  }
+
+  .ring-empty-stroke {
+    animation: ringPulse 2s ease-in-out infinite;
+  }
+
+  .prontidao-card-filled {
+    position: relative;
+    display: flex;
+    min-height: 160px;
+    cursor: pointer;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    background: #111111;
+    padding: 16px;
+  }
+
+  .prontidao-glow {
+    pointer-events: none;
+    position: absolute;
+    top: -20px;
+    left: -20px;
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    opacity: 0.15;
+    filter: blur(30px);
+  }
+
+  .score-ring-fill {
+    stroke: var(--score-color);
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1.2s ease-out;
+    filter: drop-shadow(0 0 4px var(--score-color));
+  }
+
+  .prontidao-metrics {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .prontidao-metric {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border-radius: 8px;
+    background: #0a0a0a;
+    padding: 8px 10px;
+  }
+
+  .prontidao-metric-icon svg {
+    width: 14px;
+    height: 14px;
+    margin-bottom: 2px;
+    stroke: #555555;
+  }
+
+  .prontidao-metric-value {
+    color: #ffffff;
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .prontidao-metric-label {
+    color: #555555;
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+
+  .meta-card-empty {
+    display: flex;
+    min-height: 160px;
+    cursor: pointer;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    background: #111111;
+    padding: 16px;
+    text-align: center;
+  }
+
+  .meta-card-empty:active {
+    border-color: rgba(200, 255, 0, 0.3);
+    transform: scale(0.98);
+  }
+
+  .set-goal-btn {
+    border-radius: 8px;
+    background: #c8ff00;
+    padding: 8px 20px;
+    color: #000000;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+
+  .meta-card-filled {
+    position: relative;
+    display: flex;
+    min-height: 160px;
+    cursor: pointer;
+    flex-direction: column;
+    gap: 10px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    background: #111111;
+    padding: 16px;
+  }
+
+  .meta-complete-glow {
+    pointer-events: none;
+    position: absolute;
+    top: -28px;
+    right: -28px;
+    width: 96px;
+    height: 96px;
+    border-radius: 50%;
+    background: #ffd700;
+    opacity: 0.16;
+    filter: blur(32px);
+  }
+
+  .meta-complete-badge {
+    position: relative;
+    color: #ffd700;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+  }
+
+  .meta-progress-display {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .meta-km-done {
+    color: #ffffff;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+
+  .meta-km-done span {
+    color: #888888;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0;
+  }
+
+  .meta-progress-bar-track {
+    width: 100%;
+    height: 6px;
+    overflow: hidden;
+    border-radius: 3px;
+    background: #1a1a1a;
+  }
+
+  .meta-progress-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    box-shadow: 0 0 8px rgba(200, 255, 0, 0.4);
+    transition: width 1s ease-out;
+  }
+
+  .meta-progress-labels {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .meta-percent {
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .meta-remaining {
+    min-width: 0;
+    overflow: hidden;
+    color: #888888;
+    font-size: 11px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .meta-next-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 10px;
+    background: #0a0a0a;
+    padding: 10px 12px;
+  }
+
+  .meta-next-icon {
+    display: flex;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: #1a1a1a;
+  }
+
+  .meta-next-icon svg {
+    width: 14px;
+    height: 14px;
+    stroke: #c8ff00;
+  }
+
+  .meta-next-text {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .meta-next-label {
+    margin-bottom: 2px;
+    display: block;
+    color: #555555;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+  }
+
+  .meta-next-desc {
+    display: block;
+    overflow: hidden;
+    color: #cccccc;
+    font-size: 12px;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .activity-card {
     display: flex;
     width: 100%;
@@ -1630,6 +1935,27 @@
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes cardSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ringPulse {
+  0%,
+  100% {
+    stroke-opacity: 0.3;
+  }
+  50% {
+    stroke-opacity: 0.8;
   }
 }
 

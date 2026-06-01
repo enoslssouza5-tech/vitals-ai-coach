@@ -190,6 +190,32 @@ export async function obterClimaAtual(): Promise<ClimaAtual> {
       { timeout: 5000, maximumAge: 600_000 },
     );
   });
+  const openWeatherKey =
+    import.meta.env.VITE_OPENWEATHER_API_KEY ||
+    import.meta.env.VITE_WEATHER_API_KEY ||
+    import.meta.env.WEATHER_API_KEY ||
+    "";
+  if (openWeatherKey) {
+    const params = new URLSearchParams({
+      appid: openWeatherKey,
+      units: "metric",
+      lang: "pt_br",
+      lat: String(coords.lat),
+      lon: String(coords.lon),
+    });
+    const response = await fetch(
+      `https://api.openweathermap.org/data/2.5/weather?${params.toString()}`,
+    );
+    if (response.ok) {
+      const json = await response.json();
+      return {
+        temp: Math.round(json.main?.temp ?? 24),
+        humidity: Math.round(json.main?.humidity ?? 60),
+        condition: json.weather?.[0]?.description ?? "Clima atual",
+        weathercode: json.weather?.[0]?.id,
+      };
+    }
+  }
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,relative_humidity_2m,weathercode`;
   const response = await fetch(url);
   if (!response.ok) throw new Error("Não foi possível buscar o clima agora.");
