@@ -28,14 +28,20 @@ import {
   Calendar,
   ChevronRight,
   Cloud,
+  CloudDrizzle,
+  CloudLightning,
+  CloudMoon,
   CloudRain,
+  CloudSun,
   Droplets,
   Flag,
   Footprints,
   Info,
+  MapPin,
   Moon,
   Shield,
   ShieldCheck,
+  Snowflake,
   Sparkles,
   Star,
   Sun,
@@ -43,6 +49,7 @@ import {
   Thermometer,
   Trophy,
   TrendingUp,
+  WifiOff,
   Wind,
   X,
   Zap,
@@ -737,9 +744,11 @@ type WeatherDay = {
   label: string;
   icon: string;
   max: number;
+  rainChance: number;
 };
 
 type WeatherState = {
+  locationLabel: string;
   temp: number;
   feelsLike: number;
   humidity: number;
@@ -753,6 +762,8 @@ type WeatherState = {
 function WeatherCard({ city }: { city: string }) {
   const [weather, setWeather] = useState<WeatherState | null>(null);
   const [loading, setLoading] = useState(true);
+  const [displayTemp, setDisplayTemp] = useState(0);
+  const [reloadToken, setReloadToken] = useState(0);
   const apiKey =
     import.meta.env.VITE_WEATHER_API_KEY ||
     import.meta.env.WEATHER_API_KEY ||
@@ -767,7 +778,7 @@ function WeatherCard({ city }: { city: string }) {
         try {
           coords = await getWeatherCoords(city);
           if (!coords) throw new Error("coords");
-          const fallback = await fetchOpenMeteoWeather(coords);
+          const fallback = await fetchOpenMeteoWeather(coords, city);
           if (!cancelled) setWeather(fallback);
         } catch {
           if (!cancelled) setWeather(null);
@@ -811,24 +822,26 @@ function WeatherCard({ city }: { city: string }) {
         );
         if (!forecastResponse.ok) throw new Error("forecast");
         const forecast = await forecastResponse.json();
+        const forecastDays = buildForecast(forecast.list ?? []);
+        const currentRain = current.rain?.["1h"] ? Math.min(100, Number(current.rain["1h"]) * 25) : 0;
+        const nextRain = forecast.list?.[0]?.pop ? Number(forecast.list[0].pop) * 100 : 0;
         if (cancelled) return;
         setWeather({
+          locationLabel: formatOpenWeatherLocation(current, city),
           temp: Math.round(current.main?.temp ?? 0),
           feelsLike: Math.round(current.main?.feels_like ?? current.main?.temp ?? 0),
           humidity: Math.round(current.main?.humidity ?? 0),
           wind: Math.round((current.wind?.speed ?? 0) * 3.6),
-          rain: Math.round(
-            current.rain?.["1h"] ? Math.min(100, Number(current.rain["1h"]) * 25) : 0,
-          ),
+          rain: Math.round(Math.max(currentRain, nextRain)),
           condition: capitalize(current.weather?.[0]?.description ?? "Clima local"),
-          icon: current.weather?.[0]?.main ?? "Clouds",
-          forecast: buildForecast(forecast.list ?? []),
+          icon: current.weather?.[0]?.icon ?? "04d",
+          forecast: forecastDays,
         });
       } catch {
         try {
           coords = coords ?? (await getWeatherCoords(city));
           if (!coords) throw new Error("coords");
-          const fallback = await fetchOpenMeteoWeather(coords);
+          const fallback = await fetchOpenMeteoWeather(coords, city);
           if (!cancelled) setWeather(fallback);
         } catch {
           if (!cancelled) setWeather(null);
@@ -843,123 +856,300 @@ function WeatherCard({ city }: { city: string }) {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [apiKey, city]);
+  }, [apiKey, city, reloadToken]);
+
+  useEffect(() => {
+    if (!weather) {
+      setDisplayTemp(0);
+      return;
+    }
+    if (weather.temp <= 0) {
+      setDisplayTemp(weather.temp);
+      return;
+    }
+    let frame = 0;
+    let start: number | null = null;
+    const duration = 600;
+    const animate = (timestamp: number) => {
+      start ??= timestamp;
+      const progress = Math.min(1, (timestamp - start) / duration);
+      setDisplayTemp(Math.round(weather.temp * progress));
+      if (progress < 1) frame = window.requestAnimationFrame(animate);
+    };
+    frame = window.requestAnimationFrame(animate);
+    return () => window.cancelAnimationFrame(frame);
+  }, [weather]);
 
   const hasWeather = Boolean(weather);
-  const recommendation = weather ? weatherRecommendation(weather.temp, weather.rain) : "";
+  const recommendation = weather
+    ? weatherRecommendation(weather.temp, weather.humidity, weather.wind, weather.rain)
+    : null;
+  const iconMeta = weather ? getWeatherIconMeta(weather.icon) : getWeatherIconMeta("04d");
+  const topColor = weather ? weatherAccent(weather, recommendation?.color) : "#333333";
+  const recommendationBg = recommendation ? withAlpha(recommendation.color, "15") : "#C8FF0015";
 
   return (
-    <section className="rounded-2xl border border-white/[0.06] bg-[#1A1A1A] p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-[#C8FF00]">
-            Clima inteligente
+    <section className="weather-card">
+      <div className="weather-top-bar" style={{ background: topColor }} />
+
+      {loading && !hasWeather ? (
+        <WeatherSkeleton />
+      ) : hasWeather && weather && recommendation ? (
+        <>
+          <div className="weather-hero">
+            <div className="weather-hero-left">
+              <div className="weather-label-row">
+                <span className="weather-label">Clima inteligente</span>
+              </div>
+              <div className="weather-city">
+                <MapPin aria-hidden="true" />
+                <span>{weather.locationLabel}</span>
+              </div>
+              <div className="weather-temp-display">
+                <span className="weather-temp-number">{displayTemp}</span>
+                <span className="weather-temp-degree">°C</span>
+              </div>
+              <div className="weather-description">{weather.condition}</div>
+            </div>
+            <div className="weather-icon-card" style={{ color: topColor }}>
+              <iconMeta.Icon className={iconMeta.className} strokeWidth={1.5} />
+            </div>
           </div>
-          <p className="mt-1 truncate text-[12px] text-[#888888]">{city}</p>
+
+          <div className="weather-metrics">
+            <WeatherMetric
+              icon={<Thermometer />}
+              label="Sens."
+              value={weather.feelsLike}
+              unit="°C"
+              tone={weather.feelsLike > 30 ? "#FF4444" : weather.feelsLike < 10 ? "#88CCFF" : undefined}
+            />
+            <WeatherMetric
+              icon={<Droplets />}
+              label="Umid."
+              value={weather.humidity}
+              unit="%"
+              tone={weather.humidity > 90 ? "#FF4444" : weather.humidity > 80 ? "#FF9800" : undefined}
+            />
+            <WeatherMetric
+              icon={<Wind />}
+              label="Vento"
+              value={weather.wind}
+              unit="km/h"
+              tone={weather.wind > 30 ? "#FF9800" : undefined}
+            />
+            <WeatherMetric
+              icon={<CloudRain />}
+              label="Chuva"
+              value={weather.rain}
+              unit="%"
+              tone={weather.rain > 50 ? "#4488FF" : undefined}
+            />
+          </div>
+
+          <div className="weather-recommendation">
+            <span
+              className="recommendation-icon-wrap"
+              style={{ background: recommendationBg, color: recommendation.color }}
+            >
+              <recommendation.Icon strokeWidth={1.5} />
+            </span>
+            <span className="recommendation-content">
+              <span className="recommendation-label">Recomendação</span>
+              <span className="recommendation-text" style={{ color: recommendation.color }}>
+                {recommendation.text}
+              </span>
+            </span>
+          </div>
+
+          <div className="weather-forecast">
+            <div className="weather-forecast-label">Próximos dias</div>
+            <div className="weather-forecast-grid">
+              {(weather.forecast.length ? weather.forecast : buildEmptyForecast()).map((day) => {
+                const dayIcon = getWeatherIconMeta(day.icon);
+                return (
+                  <div className="forecast-item" key={`${day.label}-${day.max}`}>
+                    <span className="forecast-day-name">{day.label}</span>
+                    <span className="forecast-icon">
+                      <dayIcon.Icon strokeWidth={1.5} />
+                    </span>
+                    <span className="forecast-temp">{day.max}°</span>
+                    <span className="forecast-rain-chance">
+                      {day.rainChance > 20 ? `${day.rainChance}%` : ""}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="weather-error">
+          <WifiOff aria-hidden="true" />
+          <div>
+            <p>Clima indisponível - verifique sua conexão</p>
+            <button type="button" onClick={() => {
+              setLoading(true);
+              setReloadToken((value) => value + 1);
+            }}>
+              Tentar novamente
+            </button>
+          </div>
         </div>
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#0A0A0A] text-[#C8FF00]">
-          {hasWeather ? weatherIcon(weather.icon) : <Cloud className="h-6 w-6 text-[#555555]" />}
-        </div>
-      </div>
-
-      <div className="mt-3 flex items-end gap-2">
-        <span className="text-[30px] font-black leading-none text-white">
-          {weather ? weather.temp : "--"}
-        </span>
-        <span className="pb-0.5 text-base font-black text-white">C</span>
-        <p className="min-w-0 flex-1 truncate pb-1 text-[12px] text-[#888888]">
-          {weather
-            ? weather.condition
-            : loading
-              ? "Preparando clima local..."
-              : "Configure a API do clima nas variaveis de ambiente"}
-        </p>
-      </div>
-
-      <div className="mt-3 grid grid-cols-4 gap-2">
-        <WeatherInfo
-          icon={<Thermometer />}
-          label="Sens."
-          value={weather ? `${weather.feelsLike} C` : "--"}
-        />
-        <WeatherInfo icon={<Droplets />} label="Umid." value={weather ? `${weather.humidity}%` : "--"} />
-        <WeatherInfo icon={<Wind />} label="Vento" value={weather ? `${weather.wind}` : "--"} />
-        <WeatherInfo icon={<CloudRain />} label="Chuva" value={weather ? `${weather.rain}%` : "--"} />
-      </div>
-
-      <div className="mt-3 border-t border-white/[0.06] pt-3 text-xs leading-snug text-[#888888]">
-        {weather
-          ? recommendation
-          : "Quando a API estiver configurada, o Pulse ajusta a recomendacao ao clima local."}
-      </div>
+      )}
     </section>
   );
 }
 
-function WeatherInfo({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
+function WeatherSkeleton() {
   return (
-    <div className="min-w-0 rounded-xl bg-[#0A0A0A] px-1.5 py-2">
-      <div className="flex justify-center text-[#555555] [&_svg]:h-4 [&_svg]:w-4">{icon}</div>
-      <div className="mt-1 truncate text-center text-[9px] font-black uppercase tracking-[0.04em] text-[#555555]">
-        {label}
+    <div className="weather-hero">
+      <div className="weather-hero-left">
+        <div className="weather-skeleton h-3 w-32" />
+        <div className="weather-skeleton h-3.5 w-40" />
+        <div className="weather-skeleton mt-2 h-10 w-20" />
+        <div className="weather-skeleton h-3.5 w-28" />
       </div>
-      <div className="mt-1 truncate text-center text-[12px] font-black text-white">{value}</div>
+      <div className="weather-icon-card">
+        <div className="weather-skeleton h-10 w-10 rounded-xl" />
+      </div>
     </div>
   );
 }
 
-function weatherIcon(icon: string) {
-  if (/rain|drizzle|thunder/i.test(icon))
-    return <CloudRain className="h-6 w-6" strokeWidth={1.7} />;
-  if (/clear|sun/i.test(icon)) return <Sun className="h-6 w-6" strokeWidth={1.7} />;
-  return <Cloud className="h-6 w-6" strokeWidth={1.7} />;
+function WeatherMetric({
+  icon,
+  label,
+  value,
+  unit,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  unit: string;
+  tone?: string;
+}) {
+  return (
+    <div className="weather-metric">
+      <span className="weather-metric-icon" style={{ color: tone }}>
+        {icon}
+      </span>
+      <span className="weather-metric-label">{label}</span>
+      <span className="weather-metric-value" style={{ color: tone }}>
+        {value}
+        <span className="weather-metric-unit"> {unit}</span>
+      </span>
+    </div>
+  );
 }
 
-function weatherRecommendation(temp: number, rain: number) {
-  if (rain > 50) return "Chuva provavel - considere treino indoor.";
-  if (temp < 15) return "Frio - vista camadas e comece em ritmo mais lento.";
-  if (temp <= 25) return "Clima ideal para treinar.";
-  if (temp <= 32) return "Quente - hidrate-se bem e reduza o pace.";
-  return "Muito quente - prefira horarios mais frescos.";
+function withAlpha(hex: string, alpha: string) {
+  return `${hex}${alpha}`;
 }
 
-function fallbackForecast(): WeatherDay[] {
-  return ["Hoje", "Amanha", "Depois", "Sexta"].map((label) => ({ label, icon: "Clouds", max: 0 }));
+function getWeatherIconMeta(iconCode: string) {
+  const map = {
+    "01d": { Icon: Sun, className: "icon-sun" },
+    "01n": { Icon: Moon, className: "icon-sun" },
+    "02d": { Icon: CloudSun, className: "icon-cloud" },
+    "02n": { Icon: CloudMoon, className: "icon-cloud" },
+    "03d": { Icon: Cloud, className: "icon-cloud" },
+    "03n": { Icon: Cloud, className: "icon-cloud" },
+    "04d": { Icon: Cloud, className: "icon-cloud" },
+    "04n": { Icon: Cloud, className: "icon-cloud" },
+    "09d": { Icon: CloudDrizzle, className: "icon-rain" },
+    "09n": { Icon: CloudDrizzle, className: "icon-rain" },
+    "10d": { Icon: CloudRain, className: "icon-rain" },
+    "10n": { Icon: CloudRain, className: "icon-rain" },
+    "11d": { Icon: CloudLightning, className: "icon-rain" },
+    "11n": { Icon: CloudLightning, className: "icon-rain" },
+    "13d": { Icon: Snowflake, className: "icon-cloud" },
+    "13n": { Icon: Snowflake, className: "icon-cloud" },
+    "50d": { Icon: Wind, className: "icon-cloud" },
+    "50n": { Icon: Wind, className: "icon-cloud" },
+  } as const;
+  return map[iconCode as keyof typeof map] ?? { Icon: Cloud, className: "icon-cloud" };
+}
+
+function weatherRecommendation(temp: number, humidity: number, windKmh: number, rain: number) {
+  if (rain > 50) {
+    return { Icon: CloudRain, text: "Chuva provável - considere treino indoor.", color: "#8888FF" };
+  }
+  if (temp > 35) {
+    return { Icon: Thermometer, text: "Muito quente - prefira manhã cedo ou após as 18h.", color: "#FF4444" };
+  }
+  if (temp > 28 && humidity > 70) {
+    return { Icon: Droplets, text: "Calor e umidade alta - hidrate-se muito bem.", color: "#FF9800" };
+  }
+  if (humidity > 85) {
+    return { Icon: Droplets, text: "Umidade alta - esforço parece maior. Reduza o pace.", color: "#FF9800" };
+  }
+  if (temp < 10) {
+    return { Icon: Thermometer, text: "Frio - aqueça bem antes de acelerar.", color: "#88CCFF" };
+  }
+  if (windKmh > 30) {
+    return { Icon: Wind, text: "Vento forte - ajuste o pace na ida.", color: "#AAAAFF" };
+  }
+  if (temp >= 15 && temp <= 25 && humidity < 70) {
+    return { Icon: ShieldCheck, text: "Condições ideais para treinar!", color: "#C8FF00" };
+  }
+  return { Icon: CloudSun, text: "Condições razoáveis - atenção à hidratação.", color: "#FFB800" };
+}
+
+function weatherAccent(weather: WeatherState, fallback?: string) {
+  if (weather.rain > 50 || /rain|09|10|11/i.test(weather.icon)) return "#4488FF";
+  if (weather.temp < 10) return "#88CCFF";
+  if (/01/.test(weather.icon)) return "#FFB800";
+  if (fallback === "#C8FF00") return "#C8FF00";
+  if (/03|04|50/i.test(weather.icon)) return "#888888";
+  return fallback ?? "#C8FF00";
+}
+
+function buildEmptyForecast(): WeatherDay[] {
+  return ["SEG", "TER", "QUA", "QUI"].map((label) => ({
+    label,
+    icon: "04d",
+    max: 0,
+    rainChance: 0,
+  }));
 }
 
 function buildForecast(
   list: Array<{
+    dt?: number;
     dt_txt?: string;
     main?: { temp_max?: number };
-    weather?: Array<{ main?: string }>;
+    pop?: number;
+    weather?: Array<{ icon?: string; main?: string }>;
   }>,
 ): WeatherDay[] {
-  const byDay = new Map<string, WeatherDay>();
+  const today = new Date().toISOString().slice(0, 10);
+  const byDay = new Map<string, { label: string; temps: number[]; icons: string[]; rain: number[] }>();
   list.forEach((item) => {
-    if (!item.dt_txt) return;
-    const date = new Date(item.dt_txt.replace(" ", "T"));
+    const date = item.dt ? new Date(item.dt * 1000) : item.dt_txt ? new Date(item.dt_txt.replace(" ", "T")) : null;
+    if (!date) return;
     const key = date.toISOString().slice(0, 10);
-    const label = date.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "");
-    const existing = byDay.get(key);
-    const max = Math.round(item.main?.temp_max ?? 0);
-    byDay.set(key, {
-      label: byDay.size === 0 ? "Hoje" : capitalize(label),
-      icon: item.weather?.[0]?.main ?? existing?.icon ?? "Clouds",
-      max: Math.max(existing?.max ?? -99, max),
-    });
+    if (key === today) return;
+    const label = date.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "").toUpperCase();
+    const existing = byDay.get(key) ?? { label, temps: [], icons: [], rain: [] };
+    existing.temps.push(item.main?.temp_max ?? 0);
+    existing.icons.push(item.weather?.[0]?.icon ?? "04d");
+    existing.rain.push((item.pop ?? 0) * 100);
+    byDay.set(key, existing);
   });
-  return Array.from(byDay.values()).slice(0, 4);
+  return Array.from(byDay.values()).slice(0, 4).map((day) => ({
+    label: day.label,
+    icon: day.icons[Math.floor(day.icons.length / 2)] ?? "04d",
+    max: Math.round(Math.max(...day.temps)),
+    rainChance: Math.round(Math.max(...day.rain)),
+  }));
 }
 
-async function fetchOpenMeteoWeather(coords: { lat: number; lon: number }): Promise<WeatherState> {
+async function fetchOpenMeteoWeather(
+  coords: { lat: number; lon: number },
+  fallbackCity: string,
+): Promise<WeatherState> {
   const url = new URL("https://api.open-meteo.com/v1/forecast");
   url.searchParams.set("latitude", String(coords.lat));
   url.searchParams.set("longitude", String(coords.lon));
@@ -975,6 +1165,7 @@ async function fetchOpenMeteoWeather(coords: { lat: number; lon: number }): Prom
   const daily = data.daily ?? {};
 
   return {
+    locationLabel: fallbackCity || "Local atual",
     temp: Math.round(current.temperature_2m ?? 0),
     feelsLike: Math.round(current.apparent_temperature ?? current.temperature_2m ?? 0),
     humidity: Math.round(current.relative_humidity_2m ?? 0),
@@ -991,15 +1182,15 @@ function buildOpenMeteoForecast(daily: {
   temperature_2m_max?: number[];
   weathercode?: number[];
 }): WeatherDay[] {
-  return (daily.time ?? []).slice(0, 4).map((day, index) => {
+  return (daily.time ?? []).slice(1, 5).map((day, index) => {
     const date = new Date(`${day}T12:00:00`);
-    const label = index === 0
-      ? "Hoje"
-      : capitalize(date.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", ""));
+    const sourceIndex = index + 1;
+    const label = date.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "").toUpperCase();
     return {
       label,
-      icon: weatherCodeIcon(daily.weathercode?.[index]),
-      max: Math.round(daily.temperature_2m_max?.[index] ?? 0),
+      icon: weatherCodeIcon(daily.weathercode?.[sourceIndex]),
+      max: Math.round(daily.temperature_2m_max?.[sourceIndex] ?? 0),
+      rainChance: 0,
     };
   });
 }
@@ -1018,9 +1209,20 @@ function weatherCodeLabel(code?: number) {
 function weatherCodeIcon(code?: number) {
   if (code === 0) return "Clear";
   if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99].includes(code ?? -1)) {
-    return "Rain";
+    return "10d";
   }
-  return "Clouds";
+  if ([1, 2].includes(code ?? -1)) return "02d";
+  return "04d";
+}
+
+function formatOpenWeatherLocation(data: {
+  name?: string;
+  sys?: { country?: string };
+}, fallbackCity: string) {
+  const name = data.name?.trim();
+  const country = data.sys?.country?.trim();
+  if (name && country) return `${name}, ${country}`;
+  return name || fallbackCity || "Local atual";
 }
 
 function getWeatherCoords(city: string): Promise<{ lat: number; lon: number } | null> {
