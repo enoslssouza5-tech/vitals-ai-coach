@@ -59,20 +59,22 @@ function Atividades() {
         />
       </label>
 
-      <div className="mt-4 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
-        {filters.map((item) => (
-          <button
-            key={item}
-            onClick={() => setFilter(item)}
-            className={`min-h-8 shrink-0 rounded-full border px-4 py-1.5 text-[13px] font-medium whitespace-nowrap ${
-              filter === item
-                ? "border-[#C8FF00] bg-[#C8FF00] font-bold text-black"
-                : "border-white/10 bg-[#1A1A1A] text-[#888888]"
-            }`}
-          >
-            {item}
-          </button>
-        ))}
+      <div className="activities-filter-wrap mt-4">
+        <div className="activities-filter-scroll flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none]">
+          {filters.map((item) => (
+            <button
+              key={item}
+              onClick={() => setFilter(item)}
+              className={`min-h-8 shrink-0 whitespace-nowrap rounded-full border px-4 py-1.5 text-[13px] font-medium ${
+                filter === item
+                  ? "border-[#C8FF00] bg-[#C8FF00] font-bold text-black"
+                  : "border-white/10 bg-[#1A1A1A] text-[#888888]"
+              }`}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
       </div>
 
       <section className="mt-4 rounded-2xl border border-white/[0.06] bg-[#1A1A1A] p-4">
@@ -91,10 +93,17 @@ function Atividades() {
         <StatsGrid values={periodStats[period]} />
       </section>
 
+      <WeeklyVolumeChart activities={pulseActivities} />
+
       <section className="mt-4 space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold">Lista completa</h2>
-          <span className="text-xs font-semibold text-[#C8FF00]">{activities.length} treinos</span>
+        <div>
+          <div className="flex items-center justify-between">
+            <h2 className="text-base font-semibold">Histórico</h2>
+            <span className="text-sm font-semibold text-[#C8FF00]">{activities.length} treinos</span>
+          </div>
+          <p className="mt-1 text-xs text-[#777777]">
+            {period} • {activities.length} atividades
+          </p>
         </div>
         {activities.map((activity) => (
           <ActivityCard
@@ -112,28 +121,71 @@ function StatsGrid({ values }: { values: string[] }) {
   const items = [
     { icon: <Footprints />, label: "Distância", value: values[0] },
     { icon: <Timer />, label: "Tempo", value: values[1] },
-    { icon: <TrendingUp />, label: "Ritmo médio", value: values[2] },
-    { icon: <Flame />, label: "Calorias", value: values[3] },
+    { icon: <TrendingUp />, label: "Ritmo", value: values[2] },
+    { icon: <Flame />, label: "Cal.", value: values[3] },
   ];
   return (
-    <div className="stats-grid-4">
+    <div className="activities-stats-grid">
       {items.map((item) => (
-        <div key={item.label} className="min-w-0 px-1.5 text-center first:pl-0 last:pr-0">
+        <div key={item.label} className="activities-stat-cell text-center">
           <div className="mx-auto mb-3 flex h-8 items-center justify-center text-[#C8FF00] [&_svg]:h-7 [&_svg]:w-7 [&_svg]:stroke-[1.6]">
             {item.icon}
           </div>
-          <div className="truncate text-lg font-bold">{item.value}</div>
-          <div className="mt-2 truncate text-[11px] text-[#888888]">{item.label}</div>
+          <div className="activities-stat-value text-lg font-bold">{item.value}</div>
+          <div className="mt-2 text-[11px] text-[#888888]">{item.label}</div>
         </div>
       ))}
     </div>
   );
 }
 
+function WeeklyVolumeChart({ activities }: { activities: PulseActivity[] }) {
+  const days = [
+    { key: "Seg", label: "Seg" },
+    { key: "Ter", label: "Ter" },
+    { key: "Qua", label: "Qua" },
+    { key: "Qui", label: "Qui" },
+    { key: "Sex", label: "Sex" },
+    { key: "Sáb", label: "Sáb" },
+    { key: "Hoje", label: "Dom" },
+  ];
+  const dailyDistances = days.map((day) =>
+    activities
+      .filter((activity) => activity.date.startsWith(day.key))
+      .reduce((total, activity) => total + activity.distanceKm, 0),
+  );
+  const maxDistance = Math.max(...dailyDistances, 1);
+
+  return (
+    <section className="mt-3 rounded-2xl border border-white/[0.06] bg-[#141414] px-4 py-3">
+      <div className="activities-week-chart">
+        {days.map((day, index) => {
+          const distance = dailyDistances[index];
+          const hasActivity = distance > 0;
+          const height = hasActivity ? Math.max(16, (distance / maxDistance) * 52) : 8;
+          return (
+            <div key={day.label} className="activities-week-day">
+              <div className="activities-week-bar-track">
+                <span
+                  className={`activities-week-bar ${hasActivity ? "is-active" : ""} ${
+                    day.key === "Hoje" ? "is-today" : ""
+                  }`}
+                  style={{ height: `${height}px` }}
+                />
+              </div>
+              <span className="activities-week-label">{day.label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function ActivityCard({ activity, onClick }: { activity: PulseActivity; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="activity-card text-left">
-      <div className="map-thumb">
+    <button onClick={onClick} className="activities-list-card text-left">
+      <div className="activities-map-thumb">
         <GoogleMapView
           paths={[activity.route]}
           className="h-[72px] w-[72px] rounded-lg"
@@ -143,32 +195,36 @@ function ActivityCard({ activity, onClick }: { activity: PulseActivity; onClick:
           strokeWeight={3}
         />
       </div>
-      <div className="content">
-        <div className="text-base font-bold text-white">{activity.title}</div>
+      <div className="activities-card-content">
+        <div className="activities-card-title text-base font-bold text-white">{activity.title}</div>
         <div className="mt-1 text-[13px] text-[#888888]">{activity.date}</div>
-        <div className="mt-3 flex gap-2 text-xs text-[#888888]">
-          <span className="flex min-w-0 items-center gap-1 truncate">
-            <Footprints className="h-4 w-4 shrink-0" />{" "}
-            <span className="truncate">{activity.distance}</span>
+        <div className="activities-card-metrics mt-3">
+          <span className="activities-card-metric">
+            <Footprints className="h-3 w-3 shrink-0" /> <span>{activity.distance}</span>
           </span>
-          <span className="flex min-w-0 items-center gap-1 truncate">
-            <Timer className="h-4 w-4 shrink-0" /> <span className="truncate">{activity.pace}</span>
+          <span className="activities-card-metric">
+            <Timer className="h-3 w-3 shrink-0" /> <span>{activity.pace}</span>
           </span>
-          <span className="flex min-w-0 items-center gap-1 truncate">
-            <Timer className="h-4 w-4 shrink-0" /> <span className="truncate">{activity.time}</span>
+          <span className="activities-card-metric">
+            <Timer className="h-3 w-3 shrink-0" /> <span>{activity.time}</span>
           </span>
         </div>
       </div>
-      <div className="right-col">
-        <span
-          className={`rounded-md px-2 py-1 text-[11px] font-semibold ${activity.quality === "Excelente" ? "bg-[#2A1A00] text-[#FF9900]" : "bg-[#1A2A00] text-[#C8FF00]"}`}
-        >
+      <div className="activities-card-side">
+        <span className={`activities-quality-badge ${qualityClass(activity.quality)}`}>
           {activity.quality}
         </span>
         <ChevronRight className="h-5 w-5 text-[#555555]" />
       </div>
     </button>
   );
+}
+
+function qualityClass(quality: string) {
+  if (quality === "Excelente") return "is-excellent";
+  if (quality === "Muito bom") return "is-great";
+  if (quality === "Bom") return "is-good";
+  return "is-regular";
 }
 
 function ActivityDetail({ activity, onBack }: { activity: PulseActivity; onBack: () => void }) {

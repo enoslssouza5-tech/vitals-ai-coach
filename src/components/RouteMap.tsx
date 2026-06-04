@@ -7,6 +7,8 @@ interface Props {
   className?: string;
   distanceMeters?: number;
   heading?: number;
+  showMarkers?: boolean;
+  darkMode?: boolean;
 }
 
 export const RouteMap = memo(function RouteMap({
@@ -14,8 +16,11 @@ export const RouteMap = memo(function RouteMap({
   className,
   distanceMeters = 0,
   heading = 0,
+  showMarkers = true,
+  darkMode = false,
 }: Props) {
   const markers = useMemo<GoogleRouteMarker[]>(() => {
+    if (!showMarkers) return [];
     if (pontos.length === 0) return [];
     const completeKm = Math.floor(distanceMeters / 1000);
     const kmMarkers = Array.from({ length: completeKm })
@@ -40,7 +45,7 @@ export const RouteMap = memo(function RouteMap({
       ...kmMarkers,
       { position: pontos[pontos.length - 1], kind: "current" },
     ];
-  }, [distanceMeters, pontos]);
+  }, [distanceMeters, pontos, showMarkers]);
 
   return (
     <GoogleMapView
@@ -50,11 +55,12 @@ export const RouteMap = memo(function RouteMap({
       followLastPoint
       fitToPath={false}
       defaultZoom={17}
-      defaultMode="hybrid"
+      defaultMode={darkMode ? "roadmap" : "hybrid"}
       strokeWeight={5}
-      tilt={60}
+      tilt={darkMode ? 0 : 60}
       heading={heading}
-      terrain
+      terrain={!darkMode}
+      showControls={false}
       ariaLabel="Mapa do treino em tempo real"
     />
   );

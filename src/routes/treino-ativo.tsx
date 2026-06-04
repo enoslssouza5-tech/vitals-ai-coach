@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
-import { Pause, Play, Square, Sparkles, RotateCcw, Save } from "lucide-react";
+import { Layers, Maximize2, Play, Square, Sparkles, RotateCcw, Save } from "lucide-react";
 import { z } from "zod";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -242,6 +242,8 @@ function TreinoAtivo() {
       ? `${Math.floor(pace)}:${String(Math.round((pace % 1) * 60)).padStart(2, "0")}`
       : "--:--";
   const calorias = estimarCalorias(type, seconds);
+  const tempoAtivo = fmtDuracao(seconds).replace(/^00:/, "");
+  const velocidade = seconds > 0 ? km / (seconds / 3600) : 0;
 
   // Encerrado
   if (fase === "finished") {
@@ -311,91 +313,78 @@ function TreinoAtivo() {
 
   // Treino ativo
   return (
-    <div className="min-h-screen flex flex-col bg-background select-none relative">
-      {/* Mapa real (se GPS) ou banner */}
-      <div className="relative w-full" style={{ height: "38vh" }}>
+    <main className="active-run-screen">
+      <div className="active-run-map">
         {usaGPS ? (
-          <Suspense fallback={<div className="w-full h-full bg-card/50" />}>
+          <Suspense fallback={<div className="h-full w-full bg-[#0A0A0A]" />}>
             <RouteMap
               pontos={pontos}
-              className="w-full h-full"
+              className="h-full w-full"
               distanceMeters={distancia}
               heading={heading}
+              showMarkers={false}
+              darkMode
             />
           </Suspense>
         ) : (
-          <div className="w-full h-full bg-card/50 flex items-center justify-center">
-            <img src={info.icon} alt="" className="h-20 w-20 opacity-40" />
-          </div>
-        )}
-
-        <div className="absolute top-safe left-5 right-5 flex justify-between items-center z-[400]">
-          <span
-            className="px-3 py-1.5 rounded-full text-[10px] font-black tracking-widest flex items-center gap-1.5"
-            style={{
-              background: "oklch(0.12 0.03 250 / 0.85)",
-              border: "1px solid oklch(0.45 0.10 250 / 0.2)",
-              backdropFilter: "blur(12px)",
-            }}
-          >
-            <span className="h-2 w-2 rounded-full bg-danger animate-pulse" />
-            {usaGPS ? "GRAVANDO GPS" : "EM ATIVIDADE"}
-          </span>
-        </div>
-
-        {usaGPS && (
-          <div className="absolute bottom-4 left-5 right-5 z-[400] rounded-2xl bg-background/85 border border-border/70 p-3 grid grid-cols-3 gap-2 text-center">
-            <MiniMapStat label="KM" value={km.toFixed(2)} />
-            <MiniMapStat label="PACE" value={ritmoStr} />
-            <MiniMapStat label="TEMPO" value={fmtDuracao(seconds)} />
-          </div>
+          <div className="h-full w-full bg-[#0A0A0A]" />
         )}
       </div>
 
-      {gpsErro && usaGPS && (
-        <div className="mx-5 mt-3 p-3 rounded-xl bg-warning/10 border border-warning/30 text-xs text-warning font-semibold">
-          {gpsErro}
-        </div>
-      )}
+      <div className="active-run-map-shade" />
 
-      <div className="flex-1 px-5 py-6 flex flex-col">
-        <div className="grid grid-cols-2 gap-4">
-          <BigStat label="TEMPO" value={fmtDuracao(seconds)} timerRole />
-          <BigStat label="DISTÂNCIA" value={usaGPS ? km.toFixed(2) : "--"} unit="km" />
-          <BigStat label="RITMO" value={usaGPS ? ritmoStr : "--:--"} unit="/km" />
-          <BigStat label="CALORIAS" value={String(calorias)} unit="kcal" />
-        </div>
+      <section className="active-run-metrics" aria-label="Métricas da corrida">
+        <button type="button" className="active-run-expand" aria-label="Expandir mapa">
+          <Maximize2 className="h-5 w-5" strokeWidth={2.1} />
+        </button>
+        <ActiveRunMetric value={usaGPS ? km.toFixed(2) : "0.00"} label="KM" />
+        <ActiveRunMetric value={tempoAtivo} label="TEMPO" highlight timerRole />
+        <ActiveRunMetric value={usaGPS ? ritmoStr : "--:--"} label="RITMO" />
+        <ActiveRunMetric value={velocidade.toFixed(1)} label="KM/H" />
+      </section>
 
-        <div className="mt-auto flex gap-3 pt-6">
-          <motion.button
-            onClick={() => setRunning((r) => !r)}
-            whileTap={{ scale: 0.96 }}
-            aria-label={running ? "Pausar treino" : "Retomar treino"}
-            className="flex-1 h-16 rounded-2xl glass-card font-black tracking-widest text-xs flex items-center justify-center gap-2 cursor-pointer"
-            style={{ minHeight: 48 }}
-          >
-            {running ? (
-              <>
-                <Pause className="h-5 w-5 text-primary-light" /> PAUSAR
-              </>
-            ) : (
-              <>
-                <Play className="h-5 w-5 text-primary-light" /> RETOMAR
-              </>
-            )}
-          </motion.button>
+      <span className="active-run-location-dot" aria-hidden="true" />
 
-          <motion.button
-            onClick={encerrar}
-            whileTap={{ scale: 0.96 }}
-            aria-label="Encerrar treino"
-            className="flex-1 h-16 rounded-2xl bg-danger text-white font-black tracking-widest text-xs flex items-center justify-center gap-2 cursor-pointer"
-            style={{ minHeight: 48 }}
-          >
-            <Square className="h-5 w-5 fill-current" /> ENCERRAR
-          </motion.button>
-        </div>
-      </div>
+      <button type="button" className="active-run-theme-button" aria-label="Tema do mapa: Escuro">
+        <Layers className="h-4 w-4" strokeWidth={2} />
+        <span>Escuro</span>
+      </button>
+
+      <motion.button
+        type="button"
+        onClick={() => setRunning((r) => !r)}
+        whileTap={{ scale: 0.96 }}
+        aria-label={running ? "Pausar corrida" : "Iniciar corrida"}
+        className="active-run-primary-button"
+      >
+        {running ? (
+          <Square className="h-7 w-7 fill-black text-black" strokeWidth={0} />
+        ) : (
+          <Play className="ml-1 h-8 w-8 fill-black text-black" strokeWidth={1.8} />
+        )}
+      </motion.button>
+    </main>
+  );
+}
+
+function ActiveRunMetric({
+  value,
+  label,
+  highlight,
+  timerRole,
+}: {
+  value: string;
+  label: string;
+  highlight?: boolean;
+  timerRole?: boolean;
+}) {
+  return (
+    <div
+      className="active-run-metric"
+      {...(timerRole ? { role: "timer", "aria-live": "polite" as const } : {})}
+    >
+      <div className={`active-run-metric-value ${highlight ? "is-highlight" : ""}`}>{value}</div>
+      <div className="active-run-metric-label">{label}</div>
     </div>
   );
 }
