@@ -2870,3 +2870,61 @@
     opacity: 1;
   }
 }
+
+/* PRE-TREINO HERO MAP */
+.treino-hero-setup { position: fixed; inset: 0; z-index: 50; width: 100%; max-width: 390px; left: 50%; transform: translateX(-50%); overflow: hidden; }
+.treino-map-container { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+.treino-map-container .mapboxgl-ctrl-logo, .treino-map-container .mapboxgl-ctrl-attrib { display: none !important; }
+.treino-top-fade { pointer-events: none; position: absolute; top: 0; left: 0; right: 0; height: 130px; background: linear-gradient(to bottom, rgba(10,10,10,0.65) 0%, transparent 100%); z-index: 1; }
+.treino-bottom-fade { pointer-events: none; position: absolute; bottom: 0; left: 0; right: 0; height: 300px; background: linear-gradient(to top, rgba(10,10,10,0.9) 0%, rgba(10,10,10,0.45) 50%, transparent 100%); z-index: 1; }
+.treino-pills-container { position: absolute; top: max(env(safe-area-inset-top, 0px), 16px); left: 0; right: 0; padding: 0 22px; display: flex; justify-content: space-between; align-items: flex-start; z-index: 10; pointer-events: none; }
+.pill-pace { display: flex; flex-direction: column; gap: 3px; animation: pillFadeIn 0.4s ease-out 0.2s both; }
+.pill-pace-value { font-size: 18px; font-weight: 750; color: #ffffff; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,0.85); letter-spacing: 0; }
+.pill-pace-label { font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.7); letter-spacing: 0; text-shadow: 0 2px 8px rgba(0,0,0,0.85); }
+.pill-weather { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; animation: pillFadeIn 0.4s ease-out 0.3s both; }
+.pill-weather-main { display: flex; align-items: center; gap: 5px; }
+.pill-weather-icon { display: none; }
+.pill-weather-temp { font-size: 18px; font-weight: 750; color: #ffffff; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,0.85); letter-spacing: 0; }
+.pill-weather-desc { font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.7); letter-spacing: 0; text-shadow: 0 2px 8px rgba(0,0,0,0.85); text-align: right; }
+.pill-challenge { position: absolute; top: calc(max(env(safe-area-inset-top, 0px), 16px) + 52px); left: 50%; transform: translateX(-50%); z-index: 10; display: flex; align-items: center; gap: 6px; pointer-events: none; white-space: nowrap; animation: pillFadeIn 0.4s ease-out 0.4s both; }
+.pill-challenge-icon { font-size: 11px; opacity: 0.75; }
+.pill-challenge-text { font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.55); text-shadow: 0 1px 4px rgba(0,0,0,0.95); letter-spacing: 0.2px; }
+.pill-challenge-highlight { color: rgba(200,255,0,0.85); font-weight: 700; }
+.treino-loc-dot { width: 16px; height: 16px; border-radius: 50%; background: #c8ff00; border: 2.5px solid #ffffff; box-shadow: 0 0 0 0 rgba(200,255,0,0.5); animation: locPulse 2s infinite; }
+.treino-sports-carousel { position: absolute; bottom: 120px; left: 0; right: 0; z-index: 10; overflow: hidden; animation: carouselIn 0.4s ease-out 0.3s both; }
+.sports-scroll { display: flex; flex-direction: row; gap: 8px; overflow-x: auto; padding: 4px 20px; scrollbar-width: none; -ms-overflow-style: none; }
+.sports-scroll::-webkit-scrollbar { display: none; }
+.sport-card { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 16px; border-radius: 20px; background: rgba(15,15,15,0.72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.09); flex-shrink: 0; cursor: pointer; transition: all 0.2s ease; min-width: 64px; }
+.sport-card:active { transform: scale(0.94); }
+.sport-emoji { font-size: 20px; line-height: 1; transition: transform 0.2s ease; }
+.sport-card:active .sport-emoji { transform: scale(1.2); }
+.sport-name { font-size: 10px; font-weight: 500; color: rgba(255,255,255,0.5); text-align: center; white-space: nowrap; letter-spacing: 0.3px; }
+.sport-card.selected { background: rgba(200,255,0,0.12); border-color: rgba(200,255,0,0.4); }
+.sport-card.selected .sport-name { color: #c8ff00; font-weight: 600; }
+.sport-card.selected .sport-emoji { transform: scale(1.15); }
+.subcategory-sheet { position: absolute; bottom: 0; left: 0; right: 0; z-index: 20; background: rgba(12,12,12,0.97); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-radius: 20px 20px 0 0; border-top: 1px solid rgba(255,255,255,0.08); padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px); transform: translateY(100%); transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1); }
+.subcategory-sheet.open { transform: translateY(0); }
+.sheet-handle { width: 36px; height: 4px; background: rgba(255,255,255,0.15); border-radius: 2px; margin: 12px auto 0; }
+.sheet-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.sheet-sport-emoji { font-size: 20px; }
+.sheet-sport-title { font-size: 15px; font-weight: 600; color: #ffffff; flex: 1; }
+.sheet-close { width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; flex-shrink: 0; }
+.sheet-close svg { width: 14px; height: 14px; stroke: #888888; stroke-width: 2px; }
+.sheet-options { padding: 8px 0 16px; max-height: 50vh; overflow-y: auto; scrollbar-width: none; }
+.sheet-options::-webkit-scrollbar { display: none; }
+.sheet-option { display: flex; align-items: center; justify-content: space-between; padding: 13px 20px; cursor: pointer; transition: background 0.15s ease; min-height: 44px; border: none; background: transparent; width: 100%; text-align: left; }
+.sheet-option:active { background: rgba(255,255,255,0.03); }
+.sheet-option-name { font-size: 15px; font-weight: 400; color: #cccccc; }
+.sheet-option.selected .sheet-option-name { color: #c8ff00; font-weight: 600; }
+.sheet-option-check { width: 16px; height: 16px; stroke: #c8ff00; opacity: 0; transition: opacity 0.15s ease; flex-shrink: 0; }
+.sheet-option.selected .sheet-option-check { opacity: 1; }
+.treino-play-btn { position: absolute; bottom: calc(max(env(safe-area-inset-bottom, 0px), 20px) + 24px); left: 50%; transform: translateX(-50%); z-index: 15; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; background: rgba(255, 255, 255, 0.15); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); animation: playIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s both; transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.15s ease; }
+.treino-play-btn.active { background: #c8ff00 !important; color: #000000; box-shadow: 0 0 0 0 rgba(200,255,0,0.4), 0 8px 24px rgba(200,255,0,0.3); animation: playIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s both, playPulse 2s ease-in-out 1s infinite; }
+.treino-play-btn:active { transform: translateX(-50%) scale(0.91); }
+.treino-play-btn svg { stroke: rgba(255, 255, 255, 0.4); fill: rgba(255, 255, 255, 0.4); transition: stroke 0.25s ease, fill 0.25s ease; }
+.treino-play-btn.active svg { stroke: #000000; fill: #000000; }
+@keyframes locPulse { 0% { box-shadow: 0 0 0 0 rgba(200,255,0,0.5); } 70% { box-shadow: 0 0 0 10px rgba(200,255,0,0); } 100% { box-shadow: 0 0 0 0 rgba(200,255,0,0); } }
+@keyframes playPulse { 0% { box-shadow: 0 0 0 0 rgba(200,255,0,0.4), 0 8px 24px rgba(200,255,0,0.3); } 50% { box-shadow: 0 0 0 10px rgba(200,255,0,0), 0 8px 24px rgba(200,255,0,0.18); } 100% { box-shadow: 0 0 0 0 rgba(200,255,0,0.4), 0 8px 24px rgba(200,255,0,0.3); } }
+@keyframes pillFadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes carouselIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes playIn { from { opacity: 0; transform: translateX(-50%) scale(0.7); } to { opacity: 1; transform: translateX(-50%) scale(1); } }

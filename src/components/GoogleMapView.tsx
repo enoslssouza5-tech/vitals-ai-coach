@@ -178,6 +178,17 @@ export const GoogleMapView = memo(function GoogleMapView({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready) return;
+
+    if (!flatPath.length && !followLastPoint && !fitToPath) {
+      map.easeTo({
+        center: toLngLat(defaultCenter),
+        zoom: defaultZoom,
+        pitch: terrain ? 60 : tilt,
+        bearing: heading,
+        duration: 400,
+      });
+    }
+
     updateRouteSources(map, simplifiedPaths, heatmap);
 
     if (flatPath.length > 1 && fitToPath) {

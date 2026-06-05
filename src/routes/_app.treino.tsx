@@ -1,15 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  Activity,
-  Bell,
   Bike,
   CheckCircle2,
-  ChevronLeft,
-  ChevronRight,
-  CircleDot,
   Clock,
-  CloudSun,
   Crosshair,
   Dumbbell,
   Expand,
@@ -17,9 +11,7 @@ import {
   Footprints,
   Heart,
   Map,
-  MapPin,
   MapPinOff,
-  MoreHorizontal,
   Mountain,
   Pause,
   Play,
@@ -33,7 +25,7 @@ import {
   Volume2,
   VolumeX,
   Waves,
-  Zap,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
@@ -46,88 +38,89 @@ export const Route = createFileRoute("/_app/treino")({ component: TreinoPage });
 
 type Stage = "setup" | "active" | "finished";
 type Goal = "distance" | "time" | "free";
-type IconComponent = typeof Footprints;
 
-type SportCategory = {
-  icon: IconComponent;
+type HeroSport = {
+  emoji: string;
   name: string;
+  label: string;
   sports: string[];
 };
 
 const stageVariants = {
   initial: { opacity: 0, y: 16 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.24, ease: "easeOut" } },
-  exit: { opacity: 0, y: -8, transition: { duration: 0.16, ease: "easeIn" } },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.24, ease: "easeOut" as const } },
+  exit: { opacity: 0, y: -8, transition: { duration: 0.16, ease: "easeIn" as const } },
 };
 
-const sportCategories: SportCategory[] = [
+const heroSports: HeroSport[] = [
   {
-    icon: Footprints,
-    name: "Corrida e Caminhada",
-    sports: [
-      "Corrida de rua",
-      "Trail running",
-      "Corrida na esteira",
-      "Caminhada",
-      "Corrida com obstaculos",
-      "Marcha atletica",
-    ],
+    emoji: "🏃",
+    name: "Corrida",
+    label: "Corrida e Caminhada",
+    sports: ["Corrida de rua", "Trail running", "Corrida na esteira", "Caminhada", "Corrida com obstaculos", "Marcha atletica"],
   },
   {
-    icon: Bike,
+    emoji: "🚴",
     name: "Ciclismo",
-    sports: [
-      "Ciclismo de estrada",
-      "Mountain bike",
-      "Ciclismo indoor",
-      "BMX urbano",
-      "Cicloturismo",
-      "Gravel",
-    ],
+    label: "Ciclismo",
+    sports: ["Ciclismo de estrada", "Mountain bike", "Ciclismo indoor", "BMX urbano", "Cicloturismo", "Gravel"],
   },
   {
-    icon: Waves,
-    name: "Natacao e Agua",
+    emoji: "🏊",
+    name: "Natação",
+    label: "Natacao e Agua",
     sports: ["Natacao em piscina", "Aguas abertas", "Triathlon", "Remo", "Kayak", "SUP"],
   },
   {
-    icon: Users,
-    name: "Esportes Coletivos",
+    emoji: "⚽",
+    name: "Coletivos",
+    label: "Esportes Coletivos",
     sports: ["Futebol", "Futsal", "Basquete", "Volei", "Handebol", "Rugby"],
   },
   {
-    icon: CircleDot,
-    name: "Esportes de Raquete",
+    emoji: "🎾",
+    name: "Raquete",
+    label: "Esportes de Raquete",
     sports: ["Tenis", "Padel", "Beach tennis", "Squash", "Badminton", "Pickleball"],
   },
   {
-    icon: Shield,
-    name: "Lutas e Artes Marciais",
+    emoji: "🥊",
+    name: "Lutas",
+    label: "Lutas e Artes Marciais",
     sports: ["Boxe", "Muay Thai", "Jiu-jitsu", "MMA", "Judo", "Karate"],
   },
   {
-    icon: Heart,
-    name: "Bem-estar e Mobilidade",
+    emoji: "🧘",
+    name: "Bem-estar",
+    label: "Bem-estar e Mobilidade",
     sports: ["Yoga", "Pilates", "Alongamento", "Mobilidade", "Danca", "Meditacao ativa"],
   },
   {
-    icon: Dumbbell,
-    name: "Forca e Potencia",
+    emoji: "🏋️",
+    name: "Força",
+    label: "Forca e Potencia",
     sports: ["Musculacao", "Powerlifting", "Halterofilismo", "Calistenia", "Funcional", "HIIT"],
   },
   {
-    icon: Mountain,
-    name: "Aventura e Outdoor",
+    emoji: "🏔",
+    name: "Aventura",
+    label: "Aventura e Outdoor",
     sports: ["Trilha", "Escalada", "Rapel", "Ski", "Surfe", "Parkour"],
   },
   {
-    icon: MoreHorizontal,
-    name: "Outros Esportes",
+    emoji: "➕",
+    name: "Outro",
+    label: "Outros Esportes",
     sports: ["Equitacao", "Golfe", "Boliche", "Patinacao", "Outro"],
   },
 ];
 
-const recentSports = ["Corrida de rua", "Musculacao", "Ciclismo de estrada"];
+const dailyChallenges = [
+  { icon: "🎯", text: "Bata seu recorde — tente", highlight: "5'18\"/km" },
+  { icon: "🔥", text: "Sequência de 4 dias —", highlight: "não para agora" },
+  { icon: "⚡", text: "3 km a mais que", highlight: "semana passada" },
+];
+
 const splitRows = [
   { km: 1, pace: "5'02\"", delta: "-4s", fast: false },
   { km: 2, pace: "4'56\"", delta: "-6s", fast: true },
@@ -138,7 +131,6 @@ const splitRows = [
 function TreinoPage() {
   const [stage, setStage] = useState<Stage>("setup");
   const [sport, setSport] = useState("");
-  const [openCategory, setOpenCategory] = useState("Corrida e Caminhada");
   const [goal, setGoal] = useState<Goal>("free");
   const [goalValue, setGoalValue] = useState("");
   const [seconds, setSeconds] = useState(0);
@@ -153,6 +145,10 @@ function TreinoPage() {
   const [gpsDistanceMeters, setGpsDistanceMeters] = useState(0);
   const [stopProgress, setStopProgress] = useState(0);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  // Hero map setup states
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [selectedMainSport, setSelectedMainSport] = useState<HeroSport | null>(null);
   const stopTimer = useRef<number | null>(null);
   const stopProgressTimer = useRef<number | null>(null);
   const watchId = useRef<number | null>(null);
@@ -166,6 +162,20 @@ function TreinoPage() {
     if (typeof window === "undefined") return;
     localStorage.setItem("pulse_voice_coach", voiceEnabled ? "on" : "off");
   }, [voiceEnabled]);
+
+  // Geolocalização para o mapa hero do pré-treino
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setUserLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      },
+      () => {
+        // Sem localização: usa São Paulo como fallback
+      },
+      { enableHighAccuracy: true, timeout: 8000 },
+    );
+  }, []);
 
   useEffect(() => {
     if (stage !== "active" || paused) return;
@@ -284,7 +294,8 @@ function TreinoPage() {
   };
 
   const start = async () => {
-    if (!sport) return;
+    const activeSport = sport || "Corrida de rua";
+    if (!sport) setSport(activeSport);
     const canUseLocation = await requestLocation();
     if (!canUseLocation) return;
     setSeconds(0);
@@ -361,35 +372,127 @@ function TreinoPage() {
     <main className="screen-container treino-screen bg-[#0A0A0A] px-0 pt-0 text-white">
       <AnimatePresence mode="wait" initial={false}>
         {stage === "setup" && (
-          <motion.section
+          <motion.div
             key="setup"
             variants={stageVariants}
             initial="initial"
             animate="animate"
             exit="exit"
-            className="px-5 pb-28"
+            className="treino-hero-setup"
           >
-            <PreWorkoutHeader currentDate={currentDate} />
-            <CoachCard />
-            <WeatherStrip />
-            <SportSelector
-              selectedSport={sport}
-              openCategory={openCategory}
-              onOpenCategory={setOpenCategory}
-              onSelect={setSport}
-            />
-            <GoalSelector goal={goal} goalValue={goalValue} onGoal={setGoal} onValue={setGoalValue} />
-            {locationBlocked && <LocationBlockedCard />}
-            <motion.button
-              whileTap={{ scale: sport ? 0.97 : 1 }}
+            {/* Mapa full screen */}
+            <div className="treino-map-container">
+              <GoogleMapView
+                className="h-full w-full"
+                interactive={false}
+                showControls={false}
+                fitToPath={false}
+                defaultMode="roadmap"
+                defaultCenter={userLocation ? [userLocation.lat, userLocation.lng] : [-23.5505, -46.6333]}
+                defaultZoom={15}
+                tilt={45}
+                terrain
+                ariaLabel="Mapa do local de treino"
+              />
+            </div>
+
+            {/* Gradientes */}
+            <div className="treino-top-fade" />
+            <div className="treino-bottom-fade" />
+
+            {/* Pílulas no topo */}
+            <div className="treino-pills-container">
+              <div className="pill-pace">
+                <span className="pill-pace-value">5'21&quot;</span>
+                <span className="pill-pace-label">Último Pace</span>
+              </div>
+              <div className="pill-weather">
+                <span className="pill-weather-temp">18°C</span>
+                <span className="pill-weather-desc">Nublado</span>
+              </div>
+            </div>
+
+            {/* Pílula desafio central */}
+            <div className="pill-challenge">
+              <span className="pill-challenge-icon">{dailyChallenges[new Date().getDay() % dailyChallenges.length].icon}</span>
+              <span className="pill-challenge-text">
+                {dailyChallenges[new Date().getDay() % dailyChallenges.length].text}{" "}
+                <span className="pill-challenge-highlight">
+                  {dailyChallenges[new Date().getDay() % dailyChallenges.length].highlight}
+                </span>
+              </span>
+            </div>
+
+            {/* Carrossel de esportes */}
+            <div className="treino-sports-carousel">
+              <div className="sports-scroll">
+                {heroSports.map((s) => (
+                  <button
+                    key={s.name}
+                    type="button"
+                    className={`sport-card ${sport === s.sports[0] || (selectedMainSport?.name === s.name && sport) ? "selected" : ""}`}
+                    onClick={() => {
+                      setSelectedMainSport(s);
+                      setSheetOpen(true);
+                    }}
+                  >
+                    <span className="sport-emoji">{s.emoji}</span>
+                    <span className="sport-name">{selectedMainSport?.name === s.name && sport ? sport.split(" ")[0] : s.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Botão Play — sempre ativo */}
+            <button
+              type="button"
+              id="treino-play-btn"
+              className={`treino-play-btn ${sport ? "active" : ""}`}
               onClick={start}
-              disabled={!sport}
-              className={sport ? "btn-iniciar-active mt-5" : "btn-iniciar-disabled mt-5"}
+              aria-label="Iniciar treino"
             >
-              <Play className="h-5 w-5 fill-current" />
-              INICIAR TREINO
-            </motion.button>
-          </motion.section>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+            </button>
+
+            {/* Bottom Sheet de subcategorias */}
+            <div className={`subcategory-sheet ${sheetOpen ? "open" : ""}`}>
+              <div className="sheet-handle" />
+              {selectedMainSport && (
+                <>
+                  <div className="sheet-header">
+                    <span className="sheet-sport-emoji">{selectedMainSport.emoji}</span>
+                    <span className="sheet-sport-title">{selectedMainSport.label}</span>
+                    <button
+                      type="button"
+                      className="sheet-close"
+                      onClick={() => setSheetOpen(false)}
+                      aria-label="Fechar"
+                    >
+                      <X />
+                    </button>
+                  </div>
+                  <div className="sheet-options">
+                    {selectedMainSport.sports.map((sub) => (
+                      <button
+                        key={sub}
+                        type="button"
+                        className={`sheet-option ${sport === sub ? "selected" : ""}`}
+                        onClick={() => {
+                          setSport(sub);
+                          setTimeout(() => setSheetOpen(false), 200);
+                        }}
+                      >
+                        <span className="sheet-option-name">{sub}</span>
+                        <CheckCircle2 className="sheet-option-check" />
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </motion.div>
         )}
 
         {stage === "active" && (
@@ -619,204 +722,7 @@ function TreinoPage() {
   );
 }
 
-function PreWorkoutHeader({ currentDate }: { currentDate: string }) {
-  return (
-    <header className="treino-pre-header">
-      <div>
-        <h1>Treino de hoje</h1>
-        <p>{currentDate}</p>
-      </div>
-      <button type="button" className="notification-button" aria-label="Notificacoes">
-        <Bell className="h-5 w-5" />
-        <span />
-      </button>
-    </header>
-  );
-}
 
-function CoachCard() {
-  return (
-    <section className="coach-card-pretreino">
-      <div className="coach-label">PULSE COACH</div>
-      <p className="mt-3 text-[14px] leading-[1.6] text-[#CCCCCC]">
-        Hoje pede uma rodagem com controle e presenca. Comece solto nos primeiros dez minutos,
-        segure zona 2 no bloco principal e deixe o final progressivo se a respiracao continuar
-        limpa.
-      </p>
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        <CoachPlanMetric label="DISTANCIA" value="6 km" />
-        <CoachPlanMetric label="INTENSIDADE" value="Z2" />
-        <CoachPlanMetric label="DURACAO" value="35 min" />
-      </div>
-    </section>
-  );
-}
-
-function CoachPlanMetric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-lg bg-[#0A0A0A] p-3 text-center">
-      <div className="text-[10px] font-semibold tracking-[0.12em] text-[#555555]">{label}</div>
-      <div className="mt-2 text-[16px] font-bold text-[#C8FF00]">{value}</div>
-    </div>
-  );
-}
-
-function WeatherStrip() {
-  return (
-    <section className="weather-strip">
-      <CloudSun className="h-6 w-6 shrink-0 text-[#C8FF00]" strokeWidth={1.6} />
-      <div className="text-[20px] font-bold text-white">18C</div>
-      <div className="min-w-0 flex-1 truncate text-[12px] text-[#888888]">Parcialmente nublado</div>
-      <span className="text-[#555555]">•</span>
-      <div className="shrink-0 text-[12px] text-[#888888]">Condicoes ideais</div>
-    </section>
-  );
-}
-
-function LocationBlockedCard() {
-  return (
-    <div className="mt-5 flex gap-3 rounded-[14px] border border-[#FF444433] bg-[#1A0A0A] p-4">
-      <MapPinOff className="h-5 w-5 shrink-0 text-[#FF4444]" strokeWidth={1.8} />
-      <div className="min-w-0">
-        <div className="text-[15px] font-bold text-white">Localização bloqueada</div>
-        <p className="mt-1 text-[13px] leading-relaxed text-[#888888]">
-          Ative a localização nas configurações do navegador para registrar sua rota.
-        </p>
-        <button type="button" className="mt-2 text-[13px] font-bold text-[#C8FF00]">
-          Como ativar -&gt;
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function SportSelector({
-  selectedSport,
-  openCategory,
-  onOpenCategory,
-  onSelect,
-}: {
-  selectedSport: string;
-  openCategory: string;
-  onOpenCategory: (category: string) => void;
-  onSelect: (sport: string) => void;
-}) {
-  return (
-    <section className="mt-6">
-      <h2 className="section-compact-title">Selecionar esporte</h2>
-      <div className="recent-sports">
-        {recentSports.map((sport) => (
-          <button
-            key={sport}
-            type="button"
-            onClick={() => onSelect(sport)}
-            className={`recent-sport-pill ${selectedSport === sport ? "active" : ""}`}
-          >
-            <Activity className="h-3 w-3" />
-            {sport}
-          </button>
-        ))}
-      </div>
-      <div className="mt-3 space-y-2">
-        {sportCategories.map((category) => {
-          const Icon = category.icon;
-          const expanded = openCategory === category.name;
-          const selectedInCategory = category.sports.includes(selectedSport);
-          return (
-            <div key={category.name}>
-              <button
-                type="button"
-                onClick={() => onOpenCategory(category.name)}
-                className={`sport-category-card ${selectedInCategory ? "selected" : ""}`}
-              >
-                <span className="sport-category-icon">
-                  <Icon />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[14px] font-semibold text-white">{category.name}</span>
-                  <span className="mt-1 block truncate text-[12px] text-[#888888]">
-                    {selectedInCategory ? selectedSport : `${category.sports.length} modalidades`}
-                  </span>
-                </span>
-                <ChevronRight className={`h-4 w-4 text-[#555555] ${expanded ? "rotate-90" : ""}`} />
-              </button>
-              {expanded && (
-                <div className="sport-pills-grid">
-                  {category.sports.map((sport) => (
-                    <button
-                      key={sport}
-                      type="button"
-                      onClick={() => onSelect(sport)}
-                      className={selectedSport === sport ? "sport-pill active" : "sport-pill"}
-                    >
-                      {sport}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-function GoalSelector({
-  goal,
-  goalValue,
-  onGoal,
-  onValue,
-}: {
-  goal: Goal;
-  goalValue: string;
-  onGoal: (goal: Goal) => void;
-  onValue: (value: string) => void;
-}) {
-  const goals = [
-    { id: "distance" as const, icon: MapPin, label: "Distancia", value: "0,0 km" },
-    { id: "time" as const, icon: Clock, label: "Tempo", value: "00:00" },
-    { id: "free" as const, icon: Zap, label: "Livre", value: "Sem meta" },
-  ];
-
-  return (
-    <section className="mt-6">
-      <h2 className="section-compact-title">Meta do treino</h2>
-      <div className="grid grid-cols-3 gap-2">
-        {goals.map((item) => {
-          const Icon = item.icon;
-          const active = goal === item.id;
-          return (
-            <button
-              type="button"
-              key={item.id}
-              onClick={() => onGoal(item.id)}
-              className={`goal-card ${active ? "active" : ""}`}
-            >
-              <Icon className="goal-card-icon" />
-              <span className="goal-card-label">{item.label}</span>
-              <span className="text-[11px] text-[#555555]">{item.value}</span>
-            </button>
-          );
-        })}
-      </div>
-      {goal !== "free" && (
-        <label className="mt-3 block rounded-xl border border-white/[0.06] bg-[#111111] p-3">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#555555]">
-            {goal === "distance" ? "Distancia alvo" : "Tempo alvo"}
-          </span>
-          <input
-            inputMode="decimal"
-            value={goalValue}
-            onChange={(event) => onValue(event.target.value)}
-            placeholder={goal === "distance" ? "5,0 km" : "35:00"}
-            className="mt-2 w-full bg-transparent text-[18px] font-bold text-white outline-none placeholder:text-[#333333]"
-          />
-        </label>
-      )}
-    </section>
-  );
-}
 
 function MetricHero({
   label,
