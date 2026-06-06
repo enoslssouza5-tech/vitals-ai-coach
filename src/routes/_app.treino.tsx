@@ -26,10 +26,12 @@ import {
   VolumeX,
   Waves,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
 import { GoogleMapView, type GoogleRouteMarker } from "@/components/GoogleMapView";
+import { NavBar } from "@/components/ui/tubelight-navbar";
 import { estimarCalorias, fmtDuracao, haversine, salvarTreino } from "@/lib/treino-history";
 import { demoPath } from "@/lib/pulse-design-data";
 import type { LatLngTuple } from "@/lib/google-maps";
@@ -43,6 +45,7 @@ type HeroSport = {
   emoji: string;
   name: string;
   label: string;
+  icon: LucideIcon;
   sports: string[];
 };
 
@@ -57,60 +60,70 @@ const heroSports: HeroSport[] = [
     emoji: "🏃",
     name: "Corrida",
     label: "Corrida e Caminhada",
+    icon: Footprints,
     sports: ["Corrida de rua", "Trail running", "Corrida na esteira", "Caminhada", "Corrida com obstaculos", "Marcha atletica"],
   },
   {
     emoji: "🚴",
     name: "Ciclismo",
     label: "Ciclismo",
+    icon: Bike,
     sports: ["Ciclismo de estrada", "Mountain bike", "Ciclismo indoor", "BMX urbano", "Cicloturismo", "Gravel"],
   },
   {
     emoji: "🏊",
     name: "Natação",
     label: "Natacao e Agua",
+    icon: Waves,
     sports: ["Natacao em piscina", "Aguas abertas", "Triathlon", "Remo", "Kayak", "SUP"],
   },
   {
     emoji: "⚽",
     name: "Coletivos",
     label: "Esportes Coletivos",
+    icon: Users,
     sports: ["Futebol", "Futsal", "Basquete", "Volei", "Handebol", "Rugby"],
   },
   {
     emoji: "🎾",
     name: "Raquete",
     label: "Esportes de Raquete",
+    icon: Trophy,
     sports: ["Tenis", "Padel", "Beach tennis", "Squash", "Badminton", "Pickleball"],
   },
   {
     emoji: "🥊",
     name: "Lutas",
     label: "Lutas e Artes Marciais",
+    icon: Shield,
     sports: ["Boxe", "Muay Thai", "Jiu-jitsu", "MMA", "Judo", "Karate"],
   },
   {
     emoji: "🧘",
     name: "Bem-estar",
     label: "Bem-estar e Mobilidade",
+    icon: Heart,
     sports: ["Yoga", "Pilates", "Alongamento", "Mobilidade", "Danca", "Meditacao ativa"],
   },
   {
     emoji: "🏋️",
     name: "Força",
     label: "Forca e Potencia",
+    icon: Dumbbell,
     sports: ["Musculacao", "Powerlifting", "Halterofilismo", "Calistenia", "Funcional", "HIIT"],
   },
   {
     emoji: "🏔",
     name: "Aventura",
     label: "Aventura e Outdoor",
+    icon: Mountain,
     sports: ["Trilha", "Escalada", "Rapel", "Ski", "Surfe", "Parkour"],
   },
   {
     emoji: "➕",
     name: "Outro",
     label: "Outros Esportes",
+    icon: Flag,
     sports: ["Equitacao", "Golfe", "Boliche", "Patinacao", "Outro"],
   },
 ];
@@ -278,6 +291,11 @@ function TreinoPage() {
     day: "2-digit",
     month: "short",
   });
+  const sportNavItems = useMemo(
+    () => heroSports.map((s) => ({ name: s.name, url: "#", icon: s.icon })),
+    [],
+  );
+  const activeSportTab = selectedMainSport?.name ?? heroSports.find((s) => s.sports.includes(sport))?.name ?? heroSports[0].name;
 
   const requestLocation = async () => {
     if (typeof navigator === "undefined" || !navigator.geolocation) return true;
@@ -425,22 +443,19 @@ function TreinoPage() {
 
             {/* Carrossel de esportes */}
             <div className="treino-sports-carousel">
-              <div className="sports-scroll">
-                {heroSports.map((s) => (
-                  <button
-                    key={s.name}
-                    type="button"
-                    className={`sport-card ${sport === s.sports[0] || (selectedMainSport?.name === s.name && sport) ? "selected" : ""}`}
-                    onClick={() => {
-                      setSelectedMainSport(s);
-                      setSheetOpen(true);
-                    }}
-                  >
-                    <span className="sport-emoji">{s.emoji}</span>
-                    <span className="sport-name">{selectedMainSport?.name === s.name && sport ? sport.split(" ")[0] : s.name}</span>
-                  </button>
-                ))}
-              </div>
+              <NavBar
+                items={sportNavItems}
+                activeName={activeSportTab}
+                ariaLabel="Escolher categoria de treino"
+                className="treino-sports-tubelight"
+                embedded
+                onItemSelect={(item) => {
+                  const selectedSport = heroSports.find((s) => s.name === item.name);
+                  if (!selectedSport) return;
+                  setSelectedMainSport(selectedSport);
+                  setSheetOpen(true);
+                }}
+              />
             </div>
 
             {/* Botão Play — sempre ativo */}
