@@ -50,8 +50,8 @@ type HeroSport = {
 
 const stageVariants = {
   initial: { opacity: 0, y: 16 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.24, ease: "easeOut" as const } },
-  exit: { opacity: 0, y: -8, transition: { duration: 0.16, ease: "easeIn" as const } },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" as const } },
+  exit: { opacity: 0, y: -8, transition: { duration: 0.22, ease: "easeIn" as const } },
 };
 
 const heroSports: HeroSport[] = [
@@ -750,9 +750,9 @@ function TreinoSetupHeader({
   return (
     <motion.header
       className="treino-floating-header"
-      initial={{ opacity: 0, y: -20 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: "easeOut" }}
+      transition={{ duration: 0.26, delay: 0.18, ease: "easeOut" }}
     >
       <button type="button" className="treino-back-button" onClick={onBack} aria-label="Voltar para o aplicativo">
         <ArrowLeft className="h-5 w-5" />

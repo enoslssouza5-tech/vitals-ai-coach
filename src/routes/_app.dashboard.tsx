@@ -1,17 +1,12 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import type React from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityList,
-  AppHeader,
-  AppScreen,
-  CoachButton,
-  DesignCard,
-  SectionTitle,
-  WeeklySummary,
 } from "@/components/PulseUI";
 import { gerarTextoAnthropic } from "@/lib/anthropic-client";
 import {
+  calcularStreak,
   dataISO,
   lerPerfil,
   lerRecuperacao,
@@ -35,6 +30,7 @@ import {
   CloudSun,
   Droplets,
   Flag,
+  Flame,
   Footprints,
   Info,
   MapPin,
@@ -47,6 +43,7 @@ import {
   Sun,
   Target,
   Thermometer,
+  Timer,
   Trophy,
   TrendingUp,
   WifiOff,
@@ -54,7 +51,8 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, useScroll, useTransform } from "framer-motion";
+import type { TreinoRegistro } from "@/lib/treino-history";
 
 const containerVariants = {
   show: {
@@ -67,10 +65,28 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 14 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.24, ease: "easeOut" } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.42, ease: "easeOut" } },
 };
 
 export const Route = createFileRoute("/_app/dashboard")({ component: Dashboard });
+
+type HeroState =
+  | { status: "loading" }
+  | { status: "error"; message: string }
+  | { status: "empty"; message: string; cta: { label: string; to: "/treino" | "/perfil" } }
+  | { status: "ready"; message: string };
+
+type SavedRace = {
+  nome?: string;
+  name?: string;
+  titulo?: string;
+  title?: string;
+  data?: string;
+  date?: string;
+  eventDate?: string;
+  targetKm?: number;
+  metaKm?: number;
+};
 
 function Dashboard() {
   const fallbackBriefing =
@@ -85,6 +101,14 @@ function Dashboard() {
     [treinos],
   );
   const firstName = (perfil.nome || "Atleta").split(" ")[0];
+  const [heroState, setHeroState] = useState<HeroState>({ status: "loading" });
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setHeroState(buildHeroInsight({ treinos, currentWeekKm }));
+    }, 220);
+    return () => window.clearTimeout(timer);
+  }, [currentWeekKm, treinos]);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,104 +136,466 @@ function Dashboard() {
   }, [fallbackBriefing, recuperacao]);
 
   return (
-    <AppScreen>
-      <AppHeader title={<>Bom dia, {firstName}</>} subtitle="Seu painel de evolucao esta pronto." />
+    <main
+      className="min-h-screen bg-[#0A0A0A] overflow-y-auto pb-24 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+      style={{ paddingBottom: "calc(5rem + env(safe-area-inset-bottom))" }}
+    >
+      <HomeHero firstName={firstName} state={heroState} />
 
-      <motion.div className="space-y-4" variants={containerVariants} initial={false} animate="show">
-        <DesignCard variants={itemVariants}>
-          <SectionTitle
-            title="Semana"
-            icon={<Calendar className="h-5 w-5 text-[#C8FF00]" strokeWidth={1.5} />}
-            action={
-              <span className="flex items-center gap-1">
-                Detalhes <ChevronRight className="h-4 w-4" />
-              </span>
-            }
-          />
-          <WeeklySummary />
-        </DesignCard>
+      <motion.div className="px-4 space-y-3" variants={containerVariants} initial={false} animate="show">
+        <ScrollRevealSection
+          className="w-full bg-[#1A1A1A] rounded-2xl p-4 border border-white/5"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-[#C8FF00]" strokeWidth={1.7} />
+              SEMANA
+            </h2>
+            <Link to="/atividades" className="text-xs font-bold text-[#C8FF00] flex items-center gap-0.5">
+              DETALHES <ChevronRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+          <WeeklySummaryCards />
+        </ScrollRevealSection>
 
-        <DesignCard variants={itemVariants} className="p-0">
+        <ScrollRevealBlock>
           <WeatherCard city={perfil.cidade || "Sao Paulo"} />
-        </DesignCard>
+        </ScrollRevealBlock>
 
         {clima && clima.temp > 30 && (
-          <DesignCard variants={itemVariants} className="border-[#C8FF00]/20 py-4">
+          <ScrollRevealSection
+            className="w-full bg-[#1A1A1A] rounded-2xl p-4 border border-[#C8FF00]/20"
+          >
             <p className="text-sm leading-relaxed text-[#A0A0A0]">
               Calor alto hoje: {clima.temp} C. Hidrate-se antes do treino.
             </p>
-          </DesignCard>
+          </ScrollRevealSection>
         )}
 
-        <DesignCard variants={itemVariants} className="border-[#C8FF00]/25">
-          <div className="mb-5 flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#C8FF00]/20 bg-[#0A0A0A] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-[#C8FF00]">
-                <Sparkles className="h-3.5 w-3.5" strokeWidth={1.7} />
-                Pulse Coach
-              </div>
-              <h2 className="max-w-[190px] text-[30px] font-black leading-[0.95] tracking-[-0.04em] text-white">
+        <ScrollRevealSection
+          className="w-full bg-[#111111] rounded-2xl p-4 border border-[#C8FF00]/20 overflow-hidden"
+        >
+          <div className="inline-flex items-center gap-1.5 bg-[#C8FF00]/10 rounded-full px-3 py-1 mb-3">
+            <Sparkles className="w-3.5 h-3.5 text-[#C8FF00]" strokeWidth={1.7} />
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#C8FF00]">
+              Pulse Coach
+            </span>
+          </div>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <h2 className="line-clamp-2 text-2xl font-black text-white leading-tight">
                 Proximo nivel, sem quebrar.
               </h2>
+              <p className="text-xs text-gray-400 leading-relaxed mt-2">{briefing}</p>
             </div>
             <ReadinessRing value={82} />
           </div>
 
-          <p className="text-[15px] leading-relaxed text-[#A0A0A0]">{briefing}</p>
-
-          <div className="mt-5 grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-3 gap-2 mt-4">
             <SignalMetric label="TSB" value="-4" status="ideal" />
             <SignalMetric label="Sono" value="7h20" status="ok" />
             <SignalMetric label="VITALs" value="78" status="bom" />
           </div>
 
-          <div className="mt-5">
-            <CoachButton>Ver treino recomendado</CoachButton>
-          </div>
-        </DesignCard>
+          <button
+            type="button"
+            className="w-full mt-4 h-12 rounded-2xl border border-[#C8FF00] bg-transparent flex items-center justify-center gap-2 active:bg-[#C8FF00]/10 transition-colors duration-150"
+          >
+            <span className="text-sm font-bold text-[#C8FF00]">Ver treino recomendado</span>
+            <span className="text-[#C8FF00]">›</span>
+          </button>
+        </ScrollRevealSection>
 
-        <DesignCard variants={itemVariants}>
-          <div className="activities-header">
-            <h2 className="activities-title">Atividades recentes</h2>
-            <Link to="/atividades" className="activities-see-all">
-              Ver todas <ChevronRight className="h-3.5 w-3.5" strokeWidth={2} />
+        <ScrollRevealSection
+          className="w-full rounded-2xl border border-white/5 bg-[#111111] p-4 shadow-[0_18px_45px_rgba(0,0,0,0.22)]"
+        >
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h2 className="text-base font-black text-white">Atividades recentes</h2>
+              <p className="mt-0.5 text-[11px] font-medium text-gray-500">Resumo dos ultimos treinos</p>
+            </div>
+            <Link
+              to="/atividades"
+              className="group flex h-9 items-center gap-1 rounded-full border border-white/5 bg-white/[0.03] px-3 text-xs font-bold text-[#C8FF00] transition-colors duration-150 hover:bg-white/[0.06] active:bg-[#C8FF00]/10"
+            >
+              Ver todas
+              <ChevronRight className="h-3.5 w-3.5 transition-transform duration-150 group-active:translate-x-0.5" strokeWidth={2} />
             </Link>
           </div>
+          <div className="mb-3 flex items-center justify-between rounded-xl border border-white/5 bg-[#0A0A0A] px-3 py-2.5">
+            <div className="flex min-w-0 items-center gap-2">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#C8FF00]/10">
+                <Trophy className="h-3.5 w-3.5 text-[#C8FF00]" strokeWidth={1.8} />
+              </span>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-bold text-white">Melhoria recente no pace</p>
+                <p className="mt-0.5 text-[10px] text-gray-500">Recorde pessoal nos ultimos 30 dias</p>
+              </div>
+            </div>
+            <span className="ml-3 shrink-0 text-[10px] font-semibold text-[#C8FF00]">+3%</span>
+          </div>
           <ActivityList treinos={treinos} showBadge limit={3} />
-        </DesignCard>
+        </ScrollRevealSection>
 
-        <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
+        <ScrollRevealBlock className="grid grid-cols-2 gap-3">
           <ReadinessCard fallbackCheckin={recuperacao} />
           <WeeklyFocusCard currentKm={currentWeekKm} defaultTargetKm={perfil.metaSemanalKm || 20} />
-        </motion.div>
+        </ScrollRevealBlock>
       </motion.div>
-    </AppScreen>
+    </main>
+  );
+}
+
+function useDashboardScrollMotion() {
+  const ref = useRef<HTMLElement | null>(null);
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ["start 92%", "end 18%"],
+  });
+
+  const y = useTransform(scrollYProgress, [0, 1], [20, -10]);
+  const scale = useTransform(scrollYProgress, [0, 0.45, 1], [0.96, 1, 1]);
+  const opacity = useTransform(scrollYProgress, [0, 0.28, 1], [0, 1, 1]);
+  const rotateX = useTransform(scrollYProgress, [0, 0.42, 1], [3, 0, 0]);
+
+  return {
+    ref,
+    style: {
+      y,
+      scale,
+      opacity,
+      rotateX,
+      transformPerspective: 1000,
+      transformOrigin: "center top",
+    },
+  };
+}
+
+function ScrollRevealSection({
+  className,
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const scrollMotion = useDashboardScrollMotion();
+
+  return (
+    <motion.section
+      ref={scrollMotion.ref}
+      className={className}
+      style={scrollMotion.style}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, amount: 0.22 }}
+      variants={itemVariants}
+    >
+      {children}
+    </motion.section>
+  );
+}
+
+function ScrollRevealBlock({
+  className,
+  children,
+}: {
+  className?: string;
+  children: React.ReactNode;
+}) {
+  const scrollMotion = useDashboardScrollMotion();
+
+  return (
+    <motion.div
+      ref={scrollMotion.ref as React.Ref<HTMLDivElement>}
+      className={className}
+      style={scrollMotion.style}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, amount: 0.22 }}
+      variants={itemVariants}
+    >
+      {children}
+    </motion.div>
+  );
+}
+
+function HomeHero({ firstName, state }: { firstName: string; state: HeroState }) {
+  const scrollMotion = useDashboardScrollMotion();
+
+  return (
+    <motion.header
+      ref={scrollMotion.ref as React.Ref<HTMLElement>}
+      className="px-4 pt-12 pb-6"
+      style={scrollMotion.style}
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.26, ease: "easeOut" }}
+    >
+      <div className="min-h-[136px]">
+        {state.status === "loading" ? (
+          <div className="space-y-4 pt-1" aria-label="Carregando insight do coach">
+            <div className="h-9 w-64 max-w-[78vw] animate-pulse rounded-xl bg-white/10" />
+            <div className="h-5 w-80 max-w-[86vw] animate-pulse rounded-lg bg-white/[0.07]" />
+          </div>
+        ) : (
+          <>
+            <h1 className="text-[34px] font-black leading-[1.04] tracking-normal text-white">
+              Bom dia, {firstName} <span aria-hidden="true">👋</span>
+            </h1>
+            <p
+              className={`mt-3 max-w-[31rem] text-[17px] font-medium leading-snug tracking-normal ${
+                state.status === "error" ? "text-gray-500" : "text-[#D8D8D8]"
+              }`}
+            >
+              {state.message}
+            </p>
+            {state.status === "empty" && (
+              <Link
+                to={state.cta.to}
+                className="mt-5 inline-flex h-11 items-center justify-center rounded-2xl bg-[#C8FF00] px-4 text-sm font-black text-[#0A0A0A] transition-colors duration-200 active:bg-[#B8EA00]"
+              >
+                {state.cta.label}
+              </Link>
+            )}
+          </>
+        )}
+      </div>
+    </motion.header>
+  );
+}
+
+function buildHeroInsight({
+  treinos,
+  currentWeekKm,
+}: {
+  treinos: TreinoRegistro[];
+  currentWeekKm: number;
+}): HeroState {
+  try {
+    const race = readNextRace();
+    if (race) {
+      const insight = raceInsight(race, treinos, currentWeekKm);
+      if (insight) return { status: "ready", message: insight };
+    }
+
+    const goalKm = readWeeklyGoal();
+    if (goalKm) {
+      const remaining = Math.max(0, goalKm - currentWeekKm);
+      if (remaining === 0) {
+        return { status: "ready", message: "Voce concluiu sua meta semanal com os treinos registrados." };
+      }
+      return {
+        status: "ready",
+        message: `Faltam ${formatKm(remaining)} km para atingir sua meta semanal.`,
+      };
+    }
+
+    const recent = recentEvolutionInsight(treinos);
+    if (recent) return { status: "ready", message: recent };
+
+    const streak = calcularStreak(treinos);
+    if (streak >= 2) {
+      return { status: "ready", message: `Voce manteve uma sequencia ativa de ${streak} dias.` };
+    }
+
+    if (treinos.length > 0) {
+      return {
+        status: "empty",
+        message: "Defina uma meta semanal para acompanhar sua evolucao com mais clareza.",
+        cta: { label: "Criar meta", to: "/perfil" },
+      };
+    }
+
+    return {
+      status: "empty",
+      message: "Complete seu primeiro treino para desbloquear insights personalizados.",
+      cta: { label: "Iniciar treino", to: "/treino" },
+    };
+  } catch {
+    return { status: "error", message: "Nao consegui atualizar seu insight agora. Seus dados seguem preservados." };
+  }
+}
+
+function readNextRace() {
+  if (typeof window === "undefined") return null;
+  const keys = ["pulse_next_race", "pulse_proxima_prova", "pulse_race_goal", "pulse_saved_races"];
+  const today = startOfDay(new Date()).getTime();
+  const races: Array<SavedRace & { dateValue: Date }> = [];
+
+  keys.forEach((key) => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as SavedRace | SavedRace[];
+      const items = Array.isArray(parsed) ? parsed : [parsed];
+      items.forEach((item) => {
+        const date = item.data ?? item.date ?? item.eventDate;
+        if (!date) return;
+        const dateValue = startOfDay(new Date(date));
+        if (Number.isNaN(dateValue.getTime()) || dateValue.getTime() < today) return;
+        races.push({ ...item, dateValue });
+      });
+    } catch {
+      return;
+    }
+  });
+
+  return races.sort((a, b) => a.dateValue.getTime() - b.dateValue.getTime())[0] ?? null;
+}
+
+function raceInsight(race: SavedRace & { dateValue: Date }, treinos: TreinoRegistro[], currentWeekKm: number) {
+  const daysLeft = daysBetween(startOfDay(new Date()), race.dateValue);
+  const raceName = race.nome ?? race.name ?? race.titulo ?? race.title ?? "sua proxima prova";
+  const weekRuns = treinosDaSemana(treinos).filter((treino) => kmTreino(treino) > 0);
+  const targetKm = Number(race.metaKm ?? race.targetKm ?? readWeeklyGoal() ?? 0);
+
+  if (daysLeft <= 0) return `Sua prova e hoje. Use os treinos registrados para ajustar o aquecimento.`;
+  if (daysLeft <= 2) return `Sua prova e neste fim de semana. Hoje e um bom dia para manter tudo leve.`;
+  if (targetKm > 0 && currentWeekKm < targetKm * 0.8) {
+    return `Faltam ${daysLeft} dias para ${raceName} e voce treinou ${formatKm(currentWeekKm)} km esta semana.`;
+  }
+  if (weekRuns.length >= 3 || (targetKm > 0 && currentWeekKm >= targetKm * 0.8)) {
+    return `Faltam ${daysLeft} dias para ${raceName}. Voce esta no ritmo certo para a prova.`;
+  }
+  return `Faltam ${daysLeft} dias para ${raceName}. Cadastre uma meta semanal para acompanhar a preparacao.`;
+}
+
+function recentEvolutionInsight(treinos: TreinoRegistro[]) {
+  const sorted = [...treinos].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+  const weekCount = treinosDaSemana(sorted).length;
+  if (weekCount > 0) return `Voce completou ${weekCount} ${weekCount === 1 ? "treino" : "treinos"} nesta semana.`;
+
+  const lastSeven = totalKmBetween(sorted, 0, 7);
+  const previousSeven = totalKmBetween(sorted, 7, 14);
+  if (lastSeven > 0 && previousSeven > 0) {
+    const delta = Math.round(((lastSeven - previousSeven) / previousSeven) * 100);
+    if (delta > 0) return `Voce esta ${delta}% acima da media da semana passada.`;
+  }
+
+  const bestPace = sorted
+    .filter((treino) => kmTreino(treino) > 0 && treino.duracaoSeg > 0)
+    .slice(0, 30)
+    .sort((a, b) => a.duracaoSeg / kmTreino(a) - b.duracaoSeg / kmTreino(b))[0];
+  if (bestPace) {
+    const yesterday = dataISO(new Date(Date.now() - 24 * 60 * 60 * 1000));
+    if (dataISO(new Date(bestPace.data)) === yesterday) {
+      return "Seu melhor pace dos ultimos 30 dias aconteceu ontem.";
+    }
+  }
+
+  return null;
+}
+
+function totalKmBetween(treinos: TreinoRegistro[], startDaysAgo: number, endDaysAgo: number) {
+  const end = new Date();
+  end.setDate(end.getDate() - startDaysAgo);
+  const start = new Date();
+  start.setDate(start.getDate() - endDaysAgo);
+  return treinos
+    .filter((treino) => {
+      const date = new Date(treino.data);
+      return date >= start && date < end;
+    })
+    .reduce((sum, treino) => sum + kmTreino(treino), 0);
+}
+
+function startOfDay(date: Date) {
+  const next = new Date(date);
+  next.setHours(0, 0, 0, 0);
+  return next;
+}
+
+function daysBetween(start: Date, end: Date) {
+  return Math.ceil((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
+}
+
+function WeeklySummaryCards() {
+  const navigate = useNavigate();
+  const items = [
+    {
+      icon: Footprints,
+      value: "42,6",
+      unit: "km",
+      label: "DISTA",
+      delta: "+12%",
+      positive: true,
+    },
+    {
+      icon: Timer,
+      value: "4h32",
+      unit: "min",
+      label: "TEMPO",
+      delta: "+8%",
+      positive: true,
+    },
+    {
+      icon: Activity,
+      value: "5'22",
+      unit: "",
+      label: "RITMO",
+      delta: "-3%",
+      positive: false,
+    },
+    {
+      icon: Flame,
+      value: "2.896",
+      unit: "",
+      label: "KCAL",
+      delta: "+15%",
+      positive: true,
+    },
+  ];
+
+  return (
+    <div className="grid grid-cols-4 gap-2 mt-1">
+      {items.map((item) => {
+        const Icon = item.icon;
+        return (
+          <button
+            key={item.label}
+            type="button"
+            className="min-w-0 bg-[#0F0F0F] rounded-xl p-3 flex flex-col gap-1 text-left active:scale-95 transition-transform duration-150 cursor-pointer"
+            onClick={() => navigate({ to: "/atividades" })}
+          >
+            <Icon className="w-4 h-4 text-[#C8FF00] mb-1" strokeWidth={1.7} />
+            <span className="text-base font-black text-white leading-none">
+              {item.value}
+              {item.unit && <span className="text-[9px] text-gray-500 inline ml-0.5">{item.unit}</span>}
+            </span>
+            <span className="text-[9px] text-gray-500 uppercase tracking-wide mt-0.5">{item.label}</span>
+            <span className={`text-[10px] font-bold mt-1 ${item.positive ? "text-[#C8FF00]" : "text-[#FF4444]"}`}>
+              {item.delta}
+            </span>
+          </button>
+        );
+      })}
+    </div>
   );
 }
 
 function ReadinessRing({ value }: { value: number }) {
-  const radius = 40;
+  const radius = 32;
   const circumference = 2 * Math.PI * radius;
   return (
-    <div className="relative grid h-[112px] w-[112px] shrink-0 place-items-center">
-      <svg viewBox="0 0 112 112" className="absolute inset-0 h-full w-full -rotate-90">
-        <circle cx="56" cy="56" r={radius} fill="none" stroke="#0A0A0A" strokeWidth="9" />
+    <div className="relative w-20 h-20 flex-shrink-0">
+      <svg viewBox="0 0 80 80" className="w-20 h-20 -rotate-90">
+        <circle cx="40" cy="40" r={radius} fill="none" stroke="#1A1A1A" strokeWidth="7" />
         <circle
-          cx="56"
-          cy="56"
+          cx="40"
+          cy="40"
           r={radius}
           fill="none"
           stroke="#C8FF00"
-          strokeWidth="9"
+          strokeWidth="7"
           strokeLinecap="round"
           strokeDasharray={`${circumference * (value / 100)} ${circumference}`}
         />
       </svg>
-      <div className="text-center">
-        <div className="text-[30px] font-black leading-none text-white">{value}%</div>
-        <div className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-[#888888]">
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-lg font-black text-white leading-none">{value}%</span>
+        <span className="text-[8px] text-gray-500 uppercase tracking-wide">
           Prep.
-        </div>
+        </span>
       </div>
     </div>
   );
@@ -224,13 +610,16 @@ function SignalMetric({
   value: string;
   status: string;
 }) {
+  const statusClass =
+    status.toLowerCase() === "ok" ? "text-gray-400" : "text-[#C8FF00]";
+
   return (
-    <div className="rounded-2xl border border-white/[0.06] bg-[#0A0A0A] p-3">
-      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-[#555555]">
+    <div className="bg-[#0A0A0A] rounded-xl p-3">
+      <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">
         {label}
       </div>
-      <div className="mt-2 text-[20px] font-black leading-none text-white">{value}</div>
-      <div className="mt-2 text-[10px] font-black uppercase tracking-[0.12em] text-[#C8FF00]">
+      <div className="text-xl font-black text-white leading-none">{value}</div>
+      <div className={`text-[10px] font-semibold mt-1 ${statusClass}`}>
         {status}
       </div>
     </div>
@@ -270,9 +659,10 @@ function ReadinessCard({ fallbackCheckin }: { fallbackCheckin?: RecuperacaoDia }
     return (
       <button
         type="button"
-        className="prontidao-card prontidao-card-empty card-interactive"
+        className="group relative flex w-full min-h-[226px] flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[linear-gradient(145deg,#1A1A1A,#101010)] p-4 text-left shadow-[0_18px_42px_rgba(0,0,0,0.28)] transition-all duration-200 hover:border-white/15 hover:bg-[#181818] active:scale-[0.985] active:border-[#C8FF00]/20 cursor-pointer"
         onClick={() => navigate({ to: "/saude" })}
       >
+        <div className="absolute inset-0 bg-[#C8FF00]/[0.025] opacity-0 transition-opacity duration-200 group-active:opacity-100" />
         <div className="flex items-center justify-between">
           <span className="text-[10px] font-black uppercase tracking-[2px] text-[#555555]">
             PRONTIDÃO
@@ -295,10 +685,15 @@ function ReadinessCard({ fallbackCheckin }: { fallbackCheckin?: RecuperacaoDia }
             </text>
           </svg>
         </div>
-        <p className="text-center text-[13px] leading-snug text-[#888888]">
+        <p className="relative text-center text-[13px] leading-snug text-[#888888]">
           Como seu corpo está hoje?
         </p>
-        <span className="checkin-cta-btn">FAZER CHECK-IN →</span>
+        <div className="relative flex items-center justify-between gap-2">
+          <span className="text-xs font-bold text-gray-500">Ver detalhes</span>
+          <span className="rounded-xl bg-[#C8FF00] px-3 py-2 text-xs font-black text-[#0A0A0A] transition-transform duration-150 group-active:scale-95">
+            Iniciar check-in
+          </span>
+        </div>
       </button>
     );
   }
@@ -311,14 +706,15 @@ function ReadinessCard({ fallbackCheckin }: { fallbackCheckin?: RecuperacaoDia }
     <>
       <button
         type="button"
-        className="prontidao-card prontidao-card-filled card-interactive"
+        className="group relative flex w-full min-h-[226px] flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[linear-gradient(145deg,#1A1A1A,#101010)] p-4 text-left shadow-[0_18px_42px_rgba(0,0,0,0.28)] transition-all duration-200 hover:border-white/15 hover:bg-[#181818] active:scale-[0.985] active:border-[#C8FF00]/20 cursor-pointer"
         onClick={() => setDetailsOpen(true)}
         style={{
           borderColor: readinessBorder(checkin.score),
           "--score-color": scoreColor,
         } as React.CSSProperties}
       >
-        <span className="prontidao-glow" style={{ background: scoreColor }} />
+        <span className="absolute inset-0 bg-[#C8FF00]/[0.025] opacity-0 transition-opacity duration-200 group-active:opacity-100" />
+        <span className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-[#C8FF00]/5 blur-2xl" />
         <div className="relative flex items-start justify-between gap-2">
           <div>
             <div className="text-[10px] font-black uppercase tracking-[2px] text-[#555555]">
@@ -352,10 +748,28 @@ function ReadinessCard({ fallbackCheckin }: { fallbackCheckin?: RecuperacaoDia }
             <span className="ml-0.5 text-[10px] font-black text-[#555555]">/100</span>
           </div>
         </div>
-        <p className="relative text-[12px] leading-snug text-[#CCCCCC]">{recommendation}</p>
-        <div className="prontidao-metrics">
-          <ReadinessMetric icon={<Moon />} value={`${checkin.sono}h`} label="SONO" />
-          <ReadinessMetric icon={<ActivityIcon />} value={`${checkin.score}%`} label="RECUP." />
+        <p className="relative text-[12px] leading-relaxed text-gray-400">
+          {checkin.score >= 75
+            ? "Seu corpo parece mais recuperado do que ontem. Bom momento para treinar com controle."
+            : recommendation}
+        </p>
+        <div className="relative grid grid-cols-2 gap-2">
+          <div className="rounded-xl border border-white/5 bg-[#0A0A0A]/70 p-3">
+            <p className="text-[9px] uppercase tracking-widest text-gray-500">Sono</p>
+            <p className="mt-1 text-lg font-black text-white">{checkin.sono}h</p>
+          </div>
+          <div className="rounded-xl border border-white/5 bg-[#0A0A0A]/70 p-3">
+            <p className="text-[9px] uppercase tracking-widest text-gray-500">Tendencia</p>
+            <p className="mt-1 text-lg font-black text-[#C8FF00]">+6%</p>
+          </div>
+        </div>
+        <div className="relative flex items-center justify-between gap-2">
+          <span className="text-xs font-bold text-gray-500 transition-colors duration-150 group-active:text-gray-300">
+            Ver detalhes
+          </span>
+          <span className="rounded-xl bg-[#C8FF00] px-3 py-2 text-xs font-black text-[#0A0A0A] transition-transform duration-150 group-active:scale-95">
+            Abrir analise
+          </span>
         </div>
       </button>
       {detailsOpen && (
@@ -421,15 +835,31 @@ function WeeklyFocusCard({
       <>
         <button
           type="button"
-          className="meta-card meta-card-empty card-interactive"
+        className="group relative w-full min-h-[226px] overflow-hidden rounded-2xl border border-white/[0.08] bg-[linear-gradient(145deg,#1A1A1A,#101010)] p-4 text-left shadow-[0_18px_42px_rgba(0,0,0,0.28)] transition-all duration-200 hover:border-white/15 hover:bg-[#181818] active:scale-[0.985] active:border-[#C8FF00]/20 cursor-pointer"
           onClick={() => setConfigOpen(true)}
         >
-          <Target className="h-7 w-7 text-[#333333]" strokeWidth={1.7} />
-          <div className="text-[14px] font-semibold text-white">Definir meta</div>
-          <p className="max-w-[130px] text-center text-[12px] leading-snug text-[#555555]">
-            Quanto quer correr essa semana?
-          </p>
-          <span className="set-goal-btn">CONFIGURAR</span>
+          <div className="absolute inset-0 bg-[#C8FF00]/[0.025] opacity-0 transition-opacity duration-200 group-active:opacity-100" />
+          <div className="relative flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Meta semanal</p>
+              <h3 className="mt-1 text-base font-black leading-tight text-white">Defina seu alvo</h3>
+            </div>
+            <div className="grid h-10 w-10 place-items-center rounded-xl border border-white/5 bg-white/[0.03]">
+              <Target className="h-4 w-4 text-[#C8FF00]" strokeWidth={1.7} />
+            </div>
+          </div>
+          <div className="relative mt-4 rounded-xl border border-white/5 bg-[#0A0A0A]/70 p-3">
+            <p className="text-xl font-black text-white">{formatKm(currentKm)} km</p>
+            <p className="mt-1 text-[11px] leading-relaxed text-gray-500">
+              Comece com uma meta realista e acompanhe sua consistencia semanal.
+            </p>
+          </div>
+          <div className="relative mt-auto flex items-center justify-between gap-2 pt-4">
+            <span className="text-xs font-bold text-gray-500">Ver historico</span>
+            <span className="rounded-xl bg-[#C8FF00] px-3 py-2 text-xs font-black text-[#0A0A0A] transition-transform duration-150 group-active:scale-95">
+              Configurar
+            </span>
+          </div>
         </button>
         {configOpen && (
           <GoalConfigSheet
@@ -453,14 +883,15 @@ function WeeklyFocusCard({
     <>
       <button
         type="button"
-        className="meta-card meta-card-filled card-interactive"
+        className="group relative w-full min-h-[226px] overflow-hidden rounded-2xl border border-white/[0.08] bg-[linear-gradient(145deg,#1A1A1A,#101010)] p-4 text-left shadow-[0_18px_42px_rgba(0,0,0,0.28)] transition-all duration-200 hover:border-white/15 hover:bg-[#181818] active:scale-[0.985] active:border-[#C8FF00]/20 cursor-pointer"
         onClick={() => setOptionsOpen(true)}
         style={{
           borderColor: completed ? "rgba(255,215,0,0.3)" : undefined,
           "--meta-color": progressColor,
         } as React.CSSProperties}
       >
-        {completed && <span className="meta-complete-glow" />}
+        <div className="absolute inset-0 bg-[#C8FF00]/[0.025] opacity-0 transition-opacity duration-200 group-active:opacity-100" />
+        {completed && <span className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-[#C8FF00]/5 blur-2xl" />}
         <div className="relative flex items-start justify-between gap-2">
           <div>
             <div className="text-[10px] font-black uppercase tracking-[2px] text-[#555555]">
@@ -473,32 +904,38 @@ function WeeklyFocusCard({
           <Target className="h-3.5 w-3.5 text-[#C8FF00]" strokeWidth={1.7} />
         </div>
         {completed && <div className="meta-complete-badge">✦ META BATIDA</div>}
-        <div className="meta-progress-display">
-          <div className="meta-km-done" style={{ color: completed ? "#FFD700" : undefined }}>
+        <div className="relative mt-4 rounded-xl border border-white/5 bg-[#0A0A0A]/70 p-3">
+          <div className="text-2xl font-black text-white" style={{ color: completed ? "#FFD700" : undefined }}>
             {formatKm(currentKm)} <span>km</span>
           </div>
-          <div className="meta-progress-bar-track">
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.06]">
             <div
-              className="meta-progress-bar-fill"
+              className="h-full rounded-full bg-[#C8FF00] transition-all duration-700"
               style={{ width: `${Math.min(100, animatedProgress)}%`, background: progressColor }}
             />
           </div>
-          <div className="meta-progress-labels">
-            <span className="meta-percent" style={{ color: progressColor }}>
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <span className="text-xs font-bold" style={{ color: progressColor }}>
               {realProgress}%
             </span>
-            <span className="meta-remaining">
+            <span className="text-[11px] text-gray-500">
               {completed ? "concluída" : `${formatKm(remaining)} km restantes`}
             </span>
           </div>
         </div>
-        <div className="meta-next-card">
-          <span className="meta-next-icon">
-            <NextIcon />
+        <div className="relative mt-4 rounded-xl border border-white/5 bg-white/[0.03] p-3">
+          <span className="flex items-start gap-2">
+            <NextIcon className="mt-0.5 h-4 w-4 shrink-0 text-[#C8FF00]" strokeWidth={1.7} />
           </span>
-          <span className="meta-next-text">
+          <span className="block text-[12px] leading-relaxed text-gray-400">
             <span className="meta-next-label">Próximo</span>
-            <span className="meta-next-desc">{next.text}</span>
+            <span>{next.text}</span>
+          </span>
+        </div>
+        <div className="relative mt-4 flex items-center justify-between gap-2">
+          <span className="text-xs font-bold text-gray-500">Ver historico</span>
+          <span className="rounded-xl bg-[#C8FF00] px-3 py-2 text-xs font-black text-[#0A0A0A] transition-transform duration-150 group-active:scale-95">
+            Ajustar meta
           </span>
         </div>
       </button>
@@ -885,96 +1322,88 @@ function WeatherCard({ city }: { city: string }) {
     ? weatherRecommendation(weather.temp, weather.humidity, weather.wind, weather.rain)
     : null;
   const iconMeta = weather ? getWeatherIconMeta(weather.icon) : getWeatherIconMeta("04d");
-  const topColor = weather ? weatherAccent(weather, recommendation?.color) : "#333333";
-  const recommendationBg = recommendation ? withAlpha(recommendation.color, "15") : "#C8FF0015";
-
   return (
-    <section className="weather-card">
-      <div className="weather-top-bar" style={{ background: topColor }} />
-
+    <section className="w-full bg-[#1A1A1A] rounded-2xl p-4 border border-[#C8FF00]/15">
       {loading && !hasWeather ? (
         <WeatherSkeleton />
       ) : hasWeather && weather && recommendation ? (
         <>
-          <div className="weather-hero">
-            <div className="weather-hero-left">
-              <div className="weather-label-row">
-                <span className="weather-label">Clima inteligente</span>
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-[#C8FF00]">
+                  Clima inteligente
+                </span>
               </div>
-              <div className="weather-city">
-                <MapPin aria-hidden="true" />
+              <div className="mt-1 flex items-center gap-1 text-gray-500 text-xs">
+                <MapPin className="w-3 h-3" aria-hidden="true" />
                 <span>{weather.locationLabel}</span>
               </div>
-              <div className="weather-temp-display">
-                <span className="weather-temp-number">{displayTemp}</span>
-                <span className="weather-temp-degree">°C</span>
+              <div className="mt-4 text-6xl font-black text-white leading-none">
+                <span>{displayTemp}</span>
+                <span className="align-top text-2xl">C</span>
               </div>
-              <div className="weather-description">{weather.condition}</div>
+              <div className="text-gray-400 text-sm mt-1">{weather.condition}</div>
             </div>
-            <div className="weather-icon-card" style={{ color: topColor }}>
-              <iconMeta.Icon className={iconMeta.className} strokeWidth={1.5} />
+            <div className="w-12 h-12 rounded-2xl bg-[#C8FF00]/10 flex items-center justify-center">
+              <iconMeta.Icon className="text-[#C8FF00] w-6 h-6" strokeWidth={1.5} />
             </div>
           </div>
 
-          <div className="weather-metrics">
+          <div className="border-t border-white/5 my-3" />
+
+          <div className="grid grid-cols-4 gap-2">
             <WeatherMetric
               icon={<Thermometer />}
-              label="Sens."
+              label="SENS"
               value={weather.feelsLike}
               unit="°C"
               tone={weather.feelsLike > 30 ? "#FF4444" : weather.feelsLike < 10 ? "#88CCFF" : undefined}
             />
             <WeatherMetric
               icon={<Droplets />}
-              label="Umid."
+              label="UMID"
               value={weather.humidity}
               unit="%"
               tone={weather.humidity > 90 ? "#FF4444" : weather.humidity > 80 ? "#FF9800" : undefined}
             />
             <WeatherMetric
               icon={<Wind />}
-              label="Vento"
+              label="VENTO"
               value={weather.wind}
               unit="km/h"
               tone={weather.wind > 30 ? "#FF9800" : undefined}
             />
             <WeatherMetric
               icon={<CloudRain />}
-              label="Chuva"
+              label="CHUVA"
               value={weather.rain}
               unit="%"
               tone={weather.rain > 50 ? "#4488FF" : undefined}
             />
           </div>
 
-          <div className="weather-recommendation">
-            <span
-              className="recommendation-icon-wrap"
-              style={{ background: recommendationBg, color: recommendation.color }}
-            >
-              <recommendation.Icon strokeWidth={1.5} />
-            </span>
-            <span className="recommendation-content">
-              <span className="recommendation-label">Recomendação</span>
-              <span className="recommendation-text" style={{ color: recommendation.color }}>
-                {recommendation.text}
-              </span>
-            </span>
+          <div className="flex items-center gap-2 mt-3 bg-[#C8FF00]/10 rounded-xl p-3">
+            <Shield className="text-[#C8FF00] w-4 h-4 shrink-0" strokeWidth={1.7} />
+            <span className="text-[#C8FF00] text-xs font-semibold">{recommendation.text}</span>
           </div>
 
-          <div className="weather-forecast">
-            <div className="weather-forecast-label">Próximos dias</div>
-            <div className="weather-forecast-grid">
+          <div className="mt-3">
+            <div className="mb-1 text-xs font-bold uppercase tracking-widest text-gray-400">Proximos dias</div>
+            <div>
               {(weather.forecast.length ? weather.forecast : buildEmptyForecast()).map((day) => {
                 const dayIcon = getWeatherIconMeta(day.icon);
                 return (
-                  <div className="forecast-item" key={`${day.label}-${day.max}`}>
-                    <span className="forecast-day-name">{day.label}</span>
-                    <span className="forecast-icon">
-                      <dayIcon.Icon strokeWidth={1.5} />
+                  <div
+                    className="flex items-center justify-between py-2 border-b border-white/5 active:bg-white/5 rounded-lg transition-colors"
+                    key={`${day.label}-${day.max}`}
+                  >
+                    <span className="text-xs text-gray-500 w-8">{day.label}</span>
+                    <span className="w-4 h-4 text-gray-400">
+                      <dayIcon.Icon className="w-4 h-4" strokeWidth={1.5} />
                     </span>
-                    <span className="forecast-temp">{day.max}°</span>
-                    <span className="forecast-rain-chance">
+                    <span className="text-xs font-bold text-white">{day.max}C</span>
+                    <span className="w-8 text-right text-[10px] text-gray-500">
                       {day.rainChance > 20 ? `${day.rainChance}%` : ""}
                     </span>
                   </div>
@@ -984,14 +1413,18 @@ function WeatherCard({ city }: { city: string }) {
           </div>
         </>
       ) : (
-        <div className="weather-error">
-          <WifiOff aria-hidden="true" />
+        <div className="flex items-center gap-3 text-gray-500">
+          <WifiOff className="w-5 h-5" aria-hidden="true" />
           <div>
-            <p>Clima indisponível - verifique sua conexão</p>
-            <button type="button" onClick={() => {
-              setLoading(true);
-              setReloadToken((value) => value + 1);
-            }}>
+            <p className="text-sm">Clima indisponivel - verifique sua conexao</p>
+            <button
+              type="button"
+              onClick={() => {
+                setLoading(true);
+                setReloadToken((value) => value + 1);
+              }}
+              className="mt-2 text-xs font-bold text-[#C8FF00]"
+            >
               Tentar novamente
             </button>
           </div>
@@ -1003,15 +1436,15 @@ function WeatherCard({ city }: { city: string }) {
 
 function WeatherSkeleton() {
   return (
-    <div className="weather-hero">
-      <div className="weather-hero-left">
-        <div className="weather-skeleton h-3 w-32" />
-        <div className="weather-skeleton h-3.5 w-40" />
-        <div className="weather-skeleton mt-2 h-10 w-20" />
-        <div className="weather-skeleton h-3.5 w-28" />
+    <div className="flex items-start justify-between gap-4">
+      <div className="min-w-0 space-y-2">
+        <div className="h-3 w-32 rounded-full bg-white/10" />
+        <div className="h-3.5 w-40 rounded-full bg-white/10" />
+        <div className="mt-2 h-12 w-24 rounded-xl bg-white/10" />
+        <div className="h-3.5 w-28 rounded-full bg-white/10" />
       </div>
-      <div className="weather-icon-card">
-        <div className="weather-skeleton h-10 w-10 rounded-xl" />
+      <div className="w-12 h-12 rounded-2xl bg-[#C8FF00]/10 flex items-center justify-center">
+        <div className="h-8 w-8 rounded-xl bg-white/10" />
       </div>
     </div>
   );
@@ -1031,21 +1464,17 @@ function WeatherMetric({
   tone?: string;
 }) {
   return (
-    <div className="weather-metric">
-      <span className="weather-metric-icon" style={{ color: tone }}>
+    <div className="flex flex-col items-center gap-0.5">
+      <span className="w-3 h-3 text-gray-500 [&>svg]:w-3 [&>svg]:h-3" style={{ color: tone }}>
         {icon}
       </span>
-      <span className="weather-metric-label">{label}</span>
-      <span className="weather-metric-value" style={{ color: tone }}>
+      <span className="text-[9px] text-gray-500 uppercase">{label}</span>
+      <span className="text-sm font-bold text-white" style={{ color: tone }}>
         {value}
-        <span className="weather-metric-unit"> {unit}</span>
+        <span className="text-[9px] text-gray-500"> {unit}</span>
       </span>
     </div>
   );
-}
-
-function withAlpha(hex: string, alpha: string) {
-  return `${hex}${alpha}`;
 }
 
 function getWeatherIconMeta(iconCode: string) {
@@ -1095,15 +1524,6 @@ function weatherRecommendation(temp: number, humidity: number, windKmh: number, 
     return { Icon: ShieldCheck, text: "Condições ideais para treinar!", color: "#C8FF00" };
   }
   return { Icon: CloudSun, text: "Condições razoáveis - atenção à hidratação.", color: "#FFB800" };
-}
-
-function weatherAccent(weather: WeatherState, fallback?: string) {
-  if (weather.rain > 50 || /rain|09|10|11/i.test(weather.icon)) return "#4488FF";
-  if (weather.temp < 10) return "#88CCFF";
-  if (/01/.test(weather.icon)) return "#FFB800";
-  if (fallback === "#C8FF00") return "#C8FF00";
-  if (/03|04|50/i.test(weather.icon)) return "#888888";
-  return fallback ?? "#C8FF00";
 }
 
 function buildEmptyForecast(): WeatherDay[] {

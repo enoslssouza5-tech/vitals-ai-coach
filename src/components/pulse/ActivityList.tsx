@@ -1,6 +1,7 @@
 import React from "react";
 import { ChevronRight, Flame, Trophy, Zap } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
+import { motion } from "framer-motion";
 import { GoogleMapView } from "@/components/GoogleMapView";
 import type { TreinoRegistro } from "@/lib/treino-history";
 import { demoPath } from "@/lib/pulse-design-data";
@@ -60,7 +61,7 @@ const activities: ActivityCardData[] = [
       icon: "flame",
       text: (
         <>
-          Sequencia de <span className="achievement-highlight">4 dias</span> ativa
+          Sequencia de <span className="text-[#C8FF00] font-bold">4 dias</span> ativa
         </>
       ),
     },
@@ -82,7 +83,7 @@ const activities: ActivityCardData[] = [
       icon: "trophy",
       text: (
         <>
-          <span className="achievement-highlight">2a corrida</span> acima de 10km esse mes
+          <span className="text-[#C8FF00] font-bold">2a corrida</span> acima de 10km esse mes
         </>
       ),
     },
@@ -104,32 +105,52 @@ const activities: ActivityCardData[] = [
   },
 ];
 
-const turnStyles: Record<ActivityCardData["turn"], string> = {
-  Manha: "border-[#FFB80033] bg-[#1A1500] text-[#FFB800]",
-  Tarde: "border-[#FF6B0033] bg-[#1A0A00] text-[#FF6B00]",
-  Noite: "border-[#8888FF33] bg-[#0A0A1A] text-[#8888FF]",
-  Madrugada: "border-[#6666CC33] bg-[#0A0A14] text-[#6666CC]",
-};
-
-const qualityStyles: Record<Quality, string> = {
-  Excelente: "badge-excelente",
-  "Muito bom": "badge-muito-bom",
-  Bom: "badge-bom",
-};
-
 function IconByKind({ kind, className }: { kind: "trophy" | "flame" | "zap"; className: string }) {
   if (kind === "flame") return <Flame className={className} strokeWidth={1.8} />;
   if (kind === "zap") return <Zap className={className} strokeWidth={1.8} />;
   return <Trophy className={className} strokeWidth={1.8} />;
 }
 
-const ActivityCard = React.memo(function ActivityCard({ activity }: { activity: ActivityCardData }) {
+function MetricValue({ metric }: { metric: ActivityMetric }) {
+  const tone =
+    metric.label === "PACE"
+      ? "text-[#C8FF00]"
+      : metric.label === "TEMPO"
+        ? "text-white"
+        : "text-white";
+
+  return (
+    <div className="flex flex-col items-center py-3 gap-0.5">
+      <motion.span
+        className={`text-lg font-black tabular-nums ${tone}`}
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: "easeOut" }}
+      >
+        {metric.value}
+      </motion.span>
+      <span className="text-[9px] text-gray-500 uppercase tracking-wide">{metric.label}</span>
+    </div>
+  );
+}
+
+const ActivityCard = React.memo(function ActivityCard({
+  activity,
+  index,
+}: {
+  activity: ActivityCardData;
+  index: number;
+}) {
   const navigate = useNavigate();
 
   return (
-    <button
+    <motion.button
       type="button"
-      className="activity-card block w-full text-left"
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.32, delay: index * 0.06, ease: "easeOut" }}
+      whileTap={{ scale: 0.985 }}
+      className="group relative mb-3 w-full overflow-hidden rounded-2xl border border-white/[0.06] bg-[#151515] text-left shadow-[0_14px_36px_rgba(0,0,0,0.2)] transition-colors duration-200 hover:border-white/10 hover:bg-[#181818] active:border-white/10"
       onClick={() =>
         navigate({
           to: "/atividades",
@@ -137,71 +158,83 @@ const ActivityCard = React.memo(function ActivityCard({ activity }: { activity: 
         })
       }
     >
-      {activity.prBanner && (
-        <div className="pr-banner">
-          <IconByKind kind={activity.prBanner.icon} className="pr-banner-icon h-3.5 w-3.5" />
-          <span className="pr-banner-text">{activity.prBanner.text}</span>
-          {activity.prBanner.detail && (
-            <span className="pr-banner-detail">{activity.prBanner.detail}</span>
-          )}
-        </div>
-      )}
+      <div className="pointer-events-none absolute inset-0 bg-white/[0.015] opacity-0 transition-opacity duration-200 group-active:opacity-100" />
 
-      <div className="flex flex-col p-4 gap-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="activity-title">{activity.title}</div>
-            <div className="activity-datetime mt-1">
+      <div className="relative flex flex-col">
+        <div className="flex items-start justify-between gap-3 px-4 pt-4 pb-3">
+          <div className="min-w-0">
+            <h3 className="text-base font-black text-white leading-tight">{activity.title}</h3>
+            <p className="text-xs text-gray-500 mt-0.5">
               <span>{activity.date}</span>
-              <span className="text-[#555555]">•</span>
+              <span className="text-[#555555]"> · </span>
               <span>{activity.time}</span>
-            </div>
+            </p>
           </div>
-          <span className={`activity-turn-badge border ${turnStyles[activity.turn]}`}>
+          <span className="shrink-0 rounded-full border border-amber-400/10 bg-amber-400/10 px-2.5 py-1 text-[10px] font-bold text-amber-300">
             {activity.turn}
           </span>
         </div>
 
-        <GoogleMapView
-          paths={[activity.route]}
-          className="w-full h-40 rounded-xl"
-          interactive={false}
-          showControls={false}
-          defaultMode="roadmap"
-          strokeColor="#C8FF00"
-          strokeWeight={4}
-          tilt={30}
-          ariaLabel={`Miniatura do mapa de ${activity.title}`}
-        />
+        <div className="relative h-40 w-full overflow-hidden border-y border-white/5 bg-[#0D0D0D]">
+          <motion.div
+            className="absolute inset-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.05),transparent)]"
+            initial={{ x: "-100%" }}
+            animate={{ x: "100%" }}
+            transition={{ duration: 1.1, ease: "easeInOut" }}
+          />
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.35, delay: 0.12 + index * 0.04 }}
+            className="relative h-full w-full"
+          >
+            <GoogleMapView
+              paths={[activity.route]}
+              className="w-full h-40 rounded-none opacity-95"
+              interactive={false}
+              showControls={false}
+              defaultMode="roadmap"
+              strokeColor="#C8FF00"
+              strokeWeight={4}
+              tilt={30}
+              ariaLabel={`Miniatura do mapa de ${activity.title}`}
+            />
+          </motion.div>
+        </div>
 
-        <div className="flex flex-col gap-3">
-          <div className="activity-metrics w-full">
-            {activity.metrics.map((metric) => (
-              <div key={metric.label} className="activity-metric">
-                <span className={`activity-metric-value ${metric.isPr ? "text-[#C8FF00]" : ""}`}>
-                  {metric.value}
-                </span>
-                <span className="activity-metric-label">{metric.label}</span>
-              </div>
-            ))}
-          </div>
+        <div className="grid grid-cols-3 divide-x divide-white/5 bg-[#111111]">
+          {activity.metrics.map((metric) => (
+            <MetricValue key={metric.label} metric={metric} />
+          ))}
+        </div>
 
-          <div className="activity-quality-row">
-            <span className={`activity-quality-badge ${qualityStyles[activity.quality]}`}>
-              {activity.quality}
-            </span>
-            <ChevronRight className="activity-arrow h-4 w-4" strokeWidth={1.8} />
-          </div>
+        <div className="flex items-center justify-between px-4 py-3 border-t border-white/5">
+          <motion.span
+            className="rounded-full border border-[#C8FF00]/10 bg-[#C8FF00]/8 px-3 py-1 text-xs font-bold text-[#C8FF00]"
+            initial={{ opacity: 0, scale: 0.96 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.25, delay: 0.14 + index * 0.06 }}
+          >
+            {activity.quality}
+          </motion.span>
+          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-white/[0.03] text-gray-500 transition-colors duration-150 group-active:bg-white/[0.06] group-active:text-[#C8FF00]">
+            <ChevronRight className="h-4 w-4 transition-transform duration-150 group-active:translate-x-0.5" strokeWidth={1.8} />
+          </span>
         </div>
       </div>
 
       {activity.achievement && (
-        <div className="activity-achievement">
-          <IconByKind kind={activity.achievement.icon} className="achievement-icon h-3.5 w-3.5" />
-          <span className="achievement-text">{activity.achievement.text}</span>
-        </div>
+        <motion.div
+          className="relative flex items-center gap-1.5 px-4 pb-3"
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, delay: 0.18 + index * 0.06 }}
+        >
+          <IconByKind kind={activity.achievement.icon} className="text-[#C8FF00]/90 h-3.5 w-3.5" />
+          <span className="text-xs text-gray-400">{activity.achievement.text}</span>
+        </motion.div>
       )}
-    </button>
+    </motion.button>
   );
 });
 
@@ -213,9 +246,9 @@ export const ActivityList = React.memo(function ActivityList({
   limit?: number;
 }) {
   return (
-    <div className="dashboard-activities space-y-3">
-      {activities.slice(0, limit).map((activity) => (
-        <ActivityCard key={activity.id} activity={activity} />
+    <div>
+      {activities.slice(0, limit).map((activity, index) => (
+        <ActivityCard key={activity.id} activity={activity} index={index} />
       ))}
     </div>
   );
