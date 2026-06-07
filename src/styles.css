@@ -43,6 +43,7 @@
 }
 
 :root {
+  --app-max-width: 430px;
   --background: #0a0a0a;
   --foreground: #ffffff;
   --surface: #1a1a1a;
@@ -95,7 +96,7 @@
 
   #root {
     width: 100%;
-    max-width: 390px;
+    max-width: var(--app-max-width);
     min-height: 100vh;
     margin: 0 auto;
     position: relative;
@@ -104,7 +105,7 @@
     box-shadow: 0 0 40px rgba(0, 0, 0, 0.8);
   }
 
-  @media (min-width: 391px) {
+  @media (min-width: 431px) {
     body {
       display: flex;
       justify-content: center;
@@ -134,13 +135,13 @@
   }
 
   .pulse-mobile-shell {
-    max-width: 390px;
+    max-width: var(--app-max-width);
   }
 
   .screen-container {
     width: 100%;
-    max-width: 390px;
-    min-height: 100vh;
+    max-width: var(--app-max-width);
+    min-height: 100dvh;
     padding: 0 20px 92px;
     overflow-x: hidden;
     overflow-y: auto;
@@ -152,7 +153,7 @@
     left: 50%;
     z-index: 100;
     width: 100%;
-    max-width: 390px;
+    max-width: var(--app-max-width);
     height: calc(60px + env(safe-area-inset-bottom));
     transform: translateX(-50%);
     overflow: visible;
@@ -1462,8 +1463,8 @@
   .map-container-active {
     position: relative;
     width: 100%;
-    height: min(38vh, 320px);
-    min-height: 260px;
+    height: clamp(300px, 48dvh, 430px);
+    min-height: 300px;
     overflow: hidden;
     background: #050505;
   }
@@ -1648,11 +1649,11 @@
   .metrics-panel {
     position: relative;
     z-index: 5;
-    min-height: 40vh;
+    min-height: calc(100dvh - 390px);
     margin-top: -34px;
     border-radius: 22px 22px 0 0;
     background: linear-gradient(180deg, rgba(10, 10, 10, 0.98) 0%, #0a0a0a 78%);
-    padding: 16px 16px 0;
+    padding: 16px 16px max(18px, env(safe-area-inset-bottom));
     box-shadow: 0 -18px 38px rgba(0, 0, 0, 0.55);
   }
 
@@ -2901,29 +2902,38 @@
 }
 
 /* PRE-TREINO HERO MAP */
-.treino-hero-setup { position: fixed; top: 0; bottom: 0; left: max(0px, calc((100vw - 390px) / 2)); z-index: 50; width: min(100vw, 390px); overflow: hidden; }
-.treino-map-container { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0; }
+.treino-hero-setup { position: fixed; top: 0; bottom: 0; left: max(0px, calc((100vw - var(--app-max-width)) / 2)); z-index: 50; width: min(100vw, var(--app-max-width)); min-height: 100dvh; overflow: hidden; background: #0a0a0a; }
+.treino-map-container { position: absolute; inset: 0; width: 100%; height: 100dvh; z-index: 0; }
 .treino-map-container .mapboxgl-ctrl-logo, .treino-map-container .mapboxgl-ctrl-attrib { display: none !important; }
-.treino-top-fade { pointer-events: none; position: absolute; top: 0; left: 0; right: 0; height: 130px; background: linear-gradient(to bottom, rgba(10,10,10,0.65) 0%, transparent 100%); z-index: 1; }
-.treino-bottom-fade { pointer-events: none; position: absolute; bottom: 0; left: 0; right: 0; height: 300px; background: linear-gradient(to top, rgba(10,10,10,0.9) 0%, rgba(10,10,10,0.45) 50%, transparent 100%); z-index: 1; }
-.treino-pills-container { position: absolute; top: max(env(safe-area-inset-top, 0px), 16px); left: 0; right: 0; padding: 0 22px; display: flex; justify-content: space-between; align-items: flex-start; z-index: 10; pointer-events: none; }
-.pill-pace { display: flex; flex-direction: column; gap: 3px; animation: pillFadeIn 0.4s ease-out 0.2s both; }
-.pill-pace-value { font-size: 18px; font-weight: 750; color: #ffffff; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,0.85); letter-spacing: 0; }
-.pill-pace-label { font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.7); letter-spacing: 0; text-shadow: 0 2px 8px rgba(0,0,0,0.85); }
-.pill-weather { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; animation: pillFadeIn 0.4s ease-out 0.3s both; }
-.pill-weather-main { display: flex; align-items: center; gap: 5px; }
-.pill-weather-icon { display: none; }
-.pill-weather-temp { font-size: 18px; font-weight: 750; color: #ffffff; line-height: 1; text-shadow: 0 2px 8px rgba(0,0,0,0.85); letter-spacing: 0; }
-.pill-weather-desc { font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.7); letter-spacing: 0; text-shadow: 0 2px 8px rgba(0,0,0,0.85); text-align: right; }
-.pill-challenge { position: absolute; top: calc(max(env(safe-area-inset-top, 0px), 16px) + 52px); left: 50%; transform: translateX(-50%); z-index: 10; display: flex; align-items: center; gap: 6px; pointer-events: none; white-space: nowrap; animation: pillFadeIn 0.4s ease-out 0.4s both; }
-.pill-challenge-icon { font-size: 11px; opacity: 0.75; }
-.pill-challenge-text { font-size: 11px; font-weight: 500; color: rgba(255,255,255,0.55); text-shadow: 0 1px 4px rgba(0,0,0,0.95); letter-spacing: 0.2px; }
-.pill-challenge-highlight { color: rgba(200,255,0,0.85); font-weight: 700; }
+.treino-top-fade { pointer-events: none; position: absolute; top: 0; left: 0; right: 0; height: 182px; background: linear-gradient(to bottom, rgba(0,0,0,0.68) 0%, rgba(0,0,0,0.28) 58%, transparent 100%); z-index: 1; }
+.treino-bottom-fade { pointer-events: none; position: absolute; bottom: 0; left: 0; right: 0; height: 300px; background: linear-gradient(to top, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.32) 55%, transparent 100%); z-index: 1; }
+.treino-top-metrics { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 82px); left: 16px; right: 16px; z-index: 10; display: flex; height: 66px; align-items: center; justify-content: space-between; gap: 14px; border-radius: 999px; background: rgba(8,8,8,0.6); padding: 0 24px; pointer-events: none; box-shadow: 0 18px 40px rgba(0,0,0,0.4); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); animation: pillFadeIn 0.4s ease-out 0.18s both; }
+.treino-metric { display: flex; min-width: 0; flex: 1; flex-direction: column; align-items: center; text-align: center; text-shadow: 0 2px 12px rgba(0,0,0,0.9); }
+.treino-metric-value { color: #ffffff; font-size: 24px; font-weight: 900; line-height: 1; letter-spacing: 0; white-space: nowrap; }
+.treino-metric-label { color: rgba(255,255,255,0.62); font-size: 10px; font-weight: 800; line-height: 1; text-transform: uppercase; white-space: nowrap; }
+.treino-metric-separator { width: 4px; height: 4px; flex-shrink: 0; border-radius: 999px; background: rgba(255,255,255,0.72); box-shadow: 0 2px 10px rgba(0,0,0,0.8); }
+.treino-back-button { position: absolute; top: calc(env(safe-area-inset-top, 0px) + 18px); left: 18px; z-index: 12; display: grid; width: 44px; height: 44px; place-items: center; border: 0; border-radius: 999px; background: transparent; color: #ffffff; filter: drop-shadow(0 2px 10px rgba(0,0,0,0.85)); animation: treinoBackBreath 2.6s ease-in-out infinite; transition: transform 0.16s ease, opacity 0.16s ease; }
+.treino-back-button:active { transform: scale(0.9); opacity: 0.82; }
 .treino-loc-dot { width: 16px; height: 16px; border-radius: 50%; background: #c8ff00; border: 2.5px solid #ffffff; box-shadow: 0 0 0 0 rgba(200,255,0,0.5); animation: locPulse 2s infinite; }
-.treino-sports-carousel { position: absolute; bottom: 120px; left: 0; right: 0; z-index: 10; overflow: visible; animation: carouselIn 0.4s ease-out 0.3s both; }
-.treino-sports-tubelight { display: block; box-sizing: border-box; width: 100%; height: 62px; margin: 0; padding: 8px max(20px, env(safe-area-inset-right)) 10px max(20px, env(safe-area-inset-left)); overflow-x: auto; overflow-y: hidden; white-space: nowrap; scrollbar-width: none; -ms-overflow-style: none; scroll-padding-inline: 20px; -webkit-overflow-scrolling: touch; }
+.treino-sports-carousel { position: absolute; bottom: calc(env(safe-area-inset-bottom, 0px) + 96px); left: 0; right: 0; z-index: 10; overflow: visible; animation: carouselIn 0.4s ease-out 0.3s both; }
+.treino-sports-tubelight { position: relative; display: block; box-sizing: border-box; width: min(calc(100% - 40px), 370px); height: 54px; margin: 0 auto; padding: 7px 10px; overflow-x: auto; overflow-y: hidden; border: 1px solid rgba(255,255,255,0.1); border-radius: 999px; background: rgba(10,10,10,0.58); box-shadow: 0 14px 34px rgba(0,0,0,0.38); white-space: nowrap; scrollbar-width: none; -ms-overflow-style: none; scroll-padding-inline: 10px; -webkit-overflow-scrolling: touch; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
 .treino-sports-tubelight::-webkit-scrollbar { display: none; }
-.treino-sports-tubelight > div { width: max-content; min-width: max-content; }
+.treino-sports-tubelight::before, .treino-sports-tubelight::after { content: ""; pointer-events: none; position: sticky; top: -7px; z-index: 5; display: block; width: 24px; height: 54px; flex: 0 0 24px; }
+.treino-sports-tubelight::before { left: -10px; float: left; margin-right: -24px; background: linear-gradient(90deg, rgba(10,10,10,0.92), rgba(10,10,10,0)); }
+.treino-sports-tubelight::after { right: -10px; float: right; margin-left: -24px; background: linear-gradient(270deg, rgba(10,10,10,0.92), rgba(10,10,10,0)); }
+.treino-sports-tubelight > div { width: max-content; min-width: max-content; border: 0; background: transparent; box-shadow: none; padding: 0; }
+.treino-sports-tubelight > div > button { min-height: 38px; min-width: 48px; padding: 8px 10px; font-size: 12px; }
+.treino-sports-tubelight > div > button svg { width: 16px; height: 16px; }
+.treino-sports-tubelight > div > button span:last-of-type { max-width: none; font-size: 9px; }
+.treino-submodalities-hotbar { display: block; box-sizing: border-box; width: min(calc(100% - 40px), 370px); height: 50px; margin: 7px auto 0; padding: 5px 8px; overflow-x: auto; overflow-y: hidden; border: 1px solid rgba(255,255,255,0.08); border-radius: 999px; background: rgba(10,10,10,0.54); box-shadow: 0 12px 28px rgba(0,0,0,0.34); white-space: nowrap; scrollbar-width: none; -ms-overflow-style: none; scroll-padding-inline: 8px; -webkit-overflow-scrolling: touch; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.treino-submodalities-hotbar::-webkit-scrollbar { display: none; }
+.treino-submodalities-shell { display: flex; width: max-content; min-width: max-content; height: 38px; align-items: center; gap: 7px; border: 0; border-radius: 999px; background: transparent; padding: 3px; box-shadow: none; }
+.treino-submodality-pill { position: relative; display: inline-flex; height: 30px; min-width: 58px; flex-shrink: 0; cursor: pointer; align-items: center; justify-content: center; border: 0; border-radius: 999px; background: transparent; padding: 0 12px; color: rgba(255,255,255,0.68); font-size: 10px; font-weight: 750; line-height: 1; white-space: nowrap; transition: color 0.18s ease, transform 0.16s ease; }
+.treino-submodality-pill:active { transform: scale(0.96); }
+.treino-submodality-pill:focus-visible { outline: 2px solid #c8ff00; outline-offset: 2px; }
+.treino-submodality-pill.selected { color: #c8ff00; }
+.treino-submodality-pill > span:first-child { position: relative; z-index: 1; }
+.treino-submodality-active { position: absolute; inset: 0; z-index: 0; border-radius: 999px; background: rgba(200,255,0,0.1); box-shadow: inset 0 0 0 1px rgba(200,255,0,0.22); }
 .sports-scroll { display: flex; flex-direction: row; gap: 8px; overflow-x: auto; padding: 4px 20px; scrollbar-width: none; -ms-overflow-style: none; }
 .sports-scroll::-webkit-scrollbar { display: none; }
 .sport-card { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 10px 16px; border-radius: 20px; background: rgba(15,15,15,0.72); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255,255,255,0.09); flex-shrink: 0; cursor: pointer; transition: all 0.2s ease; min-width: 64px; }
@@ -2934,23 +2944,7 @@
 .sport-card.selected { background: rgba(200,255,0,0.12); border-color: rgba(200,255,0,0.4); }
 .sport-card.selected .sport-name { color: #c8ff00; font-weight: 600; }
 .sport-card.selected .sport-emoji { transform: scale(1.15); }
-.subcategory-sheet { position: absolute; bottom: 0; left: 0; right: 0; z-index: 20; background: rgba(12,12,12,0.97); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border-radius: 20px 20px 0 0; border-top: 1px solid rgba(255,255,255,0.08); padding-bottom: max(env(safe-area-inset-bottom, 0px), 20px); transform: translateY(100%); transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1); }
-.subcategory-sheet.open { transform: translateY(0); }
-.sheet-handle { width: 36px; height: 4px; background: rgba(255,255,255,0.15); border-radius: 2px; margin: 12px auto 0; }
-.sheet-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-.sheet-sport-emoji { font-size: 20px; }
-.sheet-sport-title { font-size: 15px; font-weight: 600; color: #ffffff; flex: 1; }
-.sheet-close { width: 28px; height: 28px; border-radius: 50%; background: rgba(255,255,255,0.06); display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; flex-shrink: 0; }
-.sheet-close svg { width: 14px; height: 14px; stroke: #888888; stroke-width: 2px; }
-.sheet-options { padding: 8px 0 16px; max-height: 50vh; overflow-y: auto; scrollbar-width: none; }
-.sheet-options::-webkit-scrollbar { display: none; }
-.sheet-option { display: flex; align-items: center; justify-content: space-between; padding: 13px 20px; cursor: pointer; transition: background 0.15s ease; min-height: 44px; border: none; background: transparent; width: 100%; text-align: left; }
-.sheet-option:active { background: rgba(255,255,255,0.03); }
-.sheet-option-name { font-size: 15px; font-weight: 400; color: #cccccc; }
-.sheet-option.selected .sheet-option-name { color: #c8ff00; font-weight: 600; }
-.sheet-option-check { width: 16px; height: 16px; stroke: #c8ff00; opacity: 0; transition: opacity 0.15s ease; flex-shrink: 0; }
-.sheet-option.selected .sheet-option-check { opacity: 1; }
-.treino-play-btn { position: absolute; bottom: calc(max(env(safe-area-inset-bottom, 0px), 20px) + 24px); left: 50%; transform: translateX(-50%); z-index: 15; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; background: rgba(255, 255, 255, 0.15); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); animation: playIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s both; transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.15s ease; }
+.treino-play-btn { position: absolute; bottom: calc(env(safe-area-inset-bottom, 0px) + 24px); left: 50%; transform: translateX(-50%); z-index: 15; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; border: none; background: rgba(255, 255, 255, 0.15); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5); animation: playIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s both; transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.15s ease; }
 .treino-play-btn.active { background: #c8ff00 !important; color: #000000; box-shadow: 0 0 0 0 rgba(200,255,0,0.4), 0 8px 24px rgba(200,255,0,0.3); animation: playIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) 0.4s both, playPulse 2s ease-in-out 1s infinite; }
 .treino-play-btn:active { transform: translateX(-50%) scale(0.91); }
 .treino-play-btn svg { stroke: rgba(255, 255, 255, 0.4); fill: rgba(255, 255, 255, 0.4); transition: stroke 0.25s ease, fill 0.25s ease; }
@@ -2960,3 +2954,11 @@
 @keyframes pillFadeIn { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes carouselIn { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes playIn { from { opacity: 0; transform: translateX(-50%) scale(0.7); } to { opacity: 1; transform: translateX(-50%) scale(1); } }
+@keyframes treinoBackBreath { 0%, 100% { opacity: 0.82; transform: scale(1); } 50% { opacity: 1; transform: scale(1.08); } }
+@keyframes pillFadeInCentered { from { opacity: 0; transform: translateX(-50%) translateY(-6px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+
+@media (max-width: 374px) {
+  .treino-top-metrics { left: 12px; right: 12px; height: 60px; gap: 10px; padding: 0 18px; }
+  .treino-metric-value { font-size: 20px; }
+  .treino-metric-label { font-size: 9px; }
+}

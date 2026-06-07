@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ArrowLeft,
   Bike,
-  CheckCircle2,
   Clock,
   Crosshair,
   Dumbbell,
@@ -25,7 +25,6 @@ import {
   Volume2,
   VolumeX,
   Waves,
-  X,
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -129,9 +128,9 @@ const heroSports: HeroSport[] = [
 ];
 
 const dailyChallenges = [
-  { icon: "🎯", text: "Bata seu recorde — tente", highlight: "5'18\"/km" },
-  { icon: "🔥", text: "Sequência de 4 dias —", highlight: "não para agora" },
-  { icon: "⚡", text: "3 km a mais que", highlight: "semana passada" },
+  { icon: "PR", text: "Bata seu recorde", highlight: "tente 5'18\"/km" },
+  { icon: "4D", text: "Sequencia de 4 dias", highlight: "continue agora" },
+  { icon: "+3", text: "Volume da semana", highlight: "3 km acima" },
 ];
 
 const splitRows = [
@@ -142,6 +141,7 @@ const splitRows = [
 ];
 
 function TreinoPage() {
+  const navigate = useNavigate();
   const [stage, setStage] = useState<Stage>("setup");
   const [sport, setSport] = useState("");
   const [goal, setGoal] = useState<Goal>("free");
@@ -160,7 +160,6 @@ function TreinoPage() {
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   // Hero map setup states
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [sheetOpen, setSheetOpen] = useState(false);
   const [selectedMainSport, setSelectedMainSport] = useState<HeroSport | null>(null);
   const stopTimer = useRef<number | null>(null);
   const stopProgressTimer = useRef<number | null>(null);
@@ -295,7 +294,7 @@ function TreinoPage() {
     () => heroSports.map((s) => ({ name: s.name, url: "#", icon: s.icon })),
     [],
   );
-  const activeSportTab = selectedMainSport?.name ?? heroSports.find((s) => s.sports.includes(sport))?.name ?? heroSports[0].name;
+  const activeSportTab = selectedMainSport?.name ?? "";
 
   const requestLocation = async () => {
     if (typeof navigator === "undefined" || !navigator.geolocation) return true;
@@ -418,27 +417,23 @@ function TreinoPage() {
             <div className="treino-top-fade" />
             <div className="treino-bottom-fade" />
 
-            {/* Pílulas no topo */}
-            <div className="treino-pills-container">
-              <div className="pill-pace">
-                <span className="pill-pace-value">5'21&quot;</span>
-                <span className="pill-pace-label">Último Pace</span>
-              </div>
-              <div className="pill-weather">
-                <span className="pill-weather-temp">18°C</span>
-                <span className="pill-weather-desc">Nublado</span>
-              </div>
-            </div>
+            <button
+              type="button"
+              className="treino-back-button"
+              onClick={() => navigate({ to: "/dashboard" })}
+              aria-label="Voltar para o aplicativo"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
 
-            {/* Pílula desafio central */}
-            <div className="pill-challenge">
-              <span className="pill-challenge-icon">{dailyChallenges[new Date().getDay() % dailyChallenges.length].icon}</span>
-              <span className="pill-challenge-text">
-                {dailyChallenges[new Date().getDay() % dailyChallenges.length].text}{" "}
-                <span className="pill-challenge-highlight">
-                  {dailyChallenges[new Date().getDay() % dailyChallenges.length].highlight}
-                </span>
-              </span>
+            <div className="treino-top-metrics" aria-label="Resumo do treino">
+              <div className="treino-metric">
+                <span className="treino-metric-value">5'21&quot;/km</span>
+              </div>
+              <span className="treino-metric-separator" aria-hidden="true" />
+              <div className="treino-metric">
+                <span className="treino-metric-value">18°C</span>
+              </div>
             </div>
 
             {/* Carrossel de esportes */}
@@ -453,12 +448,48 @@ function TreinoPage() {
                   const selectedSport = heroSports.find((s) => s.name === item.name);
                   if (!selectedSport) return;
                   setSelectedMainSport(selectedSport);
-                  setSheetOpen(true);
                 }}
               />
+              <AnimatePresence>
+                {selectedMainSport && (
+                  <motion.div
+                    key={selectedMainSport.name}
+                    className="treino-submodalities-hotbar"
+                    aria-label={`Modalidades de ${selectedMainSport.name}`}
+                    initial={{ opacity: 0, y: 10, height: 0 }}
+                    animate={{ opacity: 1, y: 0, height: 50 }}
+                    exit={{ opacity: 0, y: 8, height: 0 }}
+                    transition={{ duration: 0.22, ease: "easeOut" }}
+                  >
+                    <div className="treino-submodalities-shell">
+                      {selectedMainSport.sports.map((sub) => {
+                        const isSelected = sport === sub;
+
+                        return (
+                          <button
+                            key={sub}
+                            type="button"
+                            className={`treino-submodality-pill ${isSelected ? "selected" : ""}`}
+                            onClick={() => setSport(sub)}
+                          >
+                            <span>{sub}</span>
+                            {isSelected && (
+                              <motion.span
+                                layoutId="treino-submodality-lamp"
+                                className="treino-submodality-active"
+                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                              />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
-            {/* Botão Play — sempre ativo */}
+            {/* Botao Play sempre ativo */}
             <button
               type="button"
               id="treino-play-btn"
@@ -470,43 +501,6 @@ function TreinoPage() {
                 <polygon points="5 3 19 12 5 21 5 3" />
               </svg>
             </button>
-
-            {/* Bottom Sheet de subcategorias */}
-            <div className={`subcategory-sheet ${sheetOpen ? "open" : ""}`}>
-              <div className="sheet-handle" />
-              {selectedMainSport && (
-                <>
-                  <div className="sheet-header">
-                    <span className="sheet-sport-emoji">{selectedMainSport.emoji}</span>
-                    <span className="sheet-sport-title">{selectedMainSport.label}</span>
-                    <button
-                      type="button"
-                      className="sheet-close"
-                      onClick={() => setSheetOpen(false)}
-                      aria-label="Fechar"
-                    >
-                      <X />
-                    </button>
-                  </div>
-                  <div className="sheet-options">
-                    {selectedMainSport.sports.map((sub) => (
-                      <button
-                        key={sub}
-                        type="button"
-                        className={`sheet-option ${sport === sub ? "selected" : ""}`}
-                        onClick={() => {
-                          setSport(sub);
-                          setTimeout(() => setSheetOpen(false), 200);
-                        }}
-                      >
-                        <span className="sheet-option-name">{sub}</span>
-                        <CheckCircle2 className="sheet-option-check" />
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
           </motion.div>
         )}
 
