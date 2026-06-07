@@ -28,7 +28,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { toast } from "sonner";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, animate, motion, useMotionValue } from "framer-motion";
 import { GoogleMapView, type GoogleRouteMarker } from "@/components/GoogleMapView";
 import { NavBar } from "@/components/ui/tubelight-navbar";
 import { estimarCalorias, fmtDuracao, haversine, salvarTreino } from "@/lib/treino-history";
@@ -127,12 +127,6 @@ const heroSports: HeroSport[] = [
   },
 ];
 
-const dailyChallenges = [
-  { icon: "PR", text: "Bata seu recorde", highlight: "tente 5'18\"/km" },
-  { icon: "4D", text: "Sequencia de 4 dias", highlight: "continue agora" },
-  { icon: "+3", text: "Volume da semana", highlight: "3 km acima" },
-];
-
 const splitRows = [
   { km: 1, pace: "5'02\"", delta: "-4s", fast: false },
   { km: 2, pace: "4'56\"", delta: "-6s", fast: true },
@@ -174,6 +168,11 @@ function TreinoPage() {
     if (typeof window === "undefined") return;
     localStorage.setItem("pulse_voice_coach", voiceEnabled ? "on" : "off");
   }, [voiceEnabled]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(new CustomEvent("pulse-treino-stage", { detail: { stage } }));
+  }, [stage]);
 
   // Geolocalização para o mapa hero do pré-treino
   useEffect(() => {
@@ -285,11 +284,6 @@ function TreinoPage() {
     ];
   }, [gpsDistanceMeters, liveRoute]);
 
-  const currentDate = new Date().toLocaleDateString("pt-BR", {
-    weekday: "short",
-    day: "2-digit",
-    month: "short",
-  });
   const sportNavItems = useMemo(
     () => heroSports.map((s) => ({ name: s.name, url: "#", icon: s.icon })),
     [],
@@ -414,27 +408,12 @@ function TreinoPage() {
             </div>
 
             {/* Gradientes */}
-            <div className="treino-top-fade" />
             <div className="treino-bottom-fade" />
-
-            <button
-              type="button"
-              className="treino-back-button"
-              onClick={() => navigate({ to: "/dashboard" })}
-              aria-label="Voltar para o aplicativo"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-
-            <div className="treino-top-metrics" aria-label="Resumo do treino">
-              <div className="treino-metric">
-                <span className="treino-metric-value">5'21&quot;/km</span>
-              </div>
-              <span className="treino-metric-separator" aria-hidden="true" />
-              <div className="treino-metric">
-                <span className="treino-metric-value">18°C</span>
-              </div>
-            </div>
+            <TreinoSetupHeader
+              sport={selectedMainSport}
+              fallbackSport={heroSports[0]}
+              onBack={() => navigate({ to: "/dashboard" })}
+            />
 
             {/* Carrossel de esportes */}
             <div className="treino-sports-carousel">
@@ -728,6 +707,89 @@ function TreinoPage() {
         )}
       </AnimatePresence>
     </main>
+  );
+}
+
+function TreinoSetupHeader({
+  sport,
+  fallbackSport,
+  onBack,
+}: {
+  sport: HeroSport | null;
+  fallbackSport: HeroSport;
+  onBack: () => void;
+}) {
+  const paceMotion = useMotionValue(0);
+  const tempMotion = useMotionValue(0);
+  const [paceSeconds, setPaceSeconds] = useState(0);
+  const [temperature, setTemperature] = useState(0);
+  const activeSport = sport ?? fallbackSport;
+  const SportIcon = activeSport.icon;
+
+  useEffect(() => {
+    const paceControls = animate(paceMotion, 321, {
+      duration: 1.2,
+      ease: "easeOut",
+      onUpdate: (value) => setPaceSeconds(Math.round(value)),
+    });
+    const tempControls = animate(tempMotion, 18, {
+      duration: 1.2,
+      ease: "easeOut",
+      onUpdate: (value) => setTemperature(Math.round(value)),
+    });
+
+    return () => {
+      paceControls.stop();
+      tempControls.stop();
+    };
+  }, [paceMotion, tempMotion]);
+
+  const minutes = Math.floor(paceSeconds / 60);
+  const seconds = String(paceSeconds % 60).padStart(2, "0");
+
+  return (
+    <motion.header
+      className="treino-floating-header"
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
+    >
+      <button type="button" className="treino-back-button" onClick={onBack} aria-label="Voltar para o aplicativo">
+        <ArrowLeft className="h-5 w-5" />
+      </button>
+
+      <div className="treino-header-metrics" aria-label="Resumo do treino">
+        <div className="treino-header-metric treino-header-metric-left">
+          <span className="treino-header-label">RITMO</span>
+          <span className="treino-header-value">
+            {minutes}'{seconds}&quot;<span>/km</span>
+          </span>
+        </div>
+        <motion.span
+          className="treino-header-separator"
+          initial={{ scaleY: 0 }}
+          animate={{ scaleY: 1 }}
+          transition={{ duration: 0.38, delay: 0.4, ease: "easeOut" }}
+        />
+        <div className="treino-header-metric treino-header-metric-right">
+          <span className="treino-header-label">CLIMA</span>
+          <span className="treino-header-value">
+            {temperature}°<span>C</span>
+          </span>
+        </div>
+      </div>
+
+      <motion.div
+        className="treino-selected-pill"
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.34, delay: 0.5, ease: "easeOut" }}
+        aria-label={`Modalidade selecionada: ${activeSport.name}`}
+      >
+        <SportIcon className="h-3.5 w-3.5" />
+        <span>{activeSport.name}</span>
+      </motion.div>
+    </motion.header>
   );
 }
 

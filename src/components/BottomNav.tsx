@@ -1,11 +1,19 @@
 import { Link, useLocation } from "@tanstack/react-router";
-import { BarChart3, Home, Plus, User, Users } from "lucide-react";
+import { Activity, Bot, Home, User, Users, type LucideIcon } from "lucide-react";
+import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
-type Item = { to: string; icon: typeof Home; label: string; match?: string[] };
+type Item = {
+  to: string;
+  icon: LucideIcon;
+  label: string;
+  match?: string[];
+};
 
 const items: Item[] = [
   { to: "/dashboard", icon: Home, label: "Inicio" },
-  { to: "/atividades", icon: BarChart3, label: "Atividades", match: ["/atividades", "/historico"] },
+  { to: "/atividades", icon: Activity, label: "Atividades", match: ["/atividades", "/historico"] },
+  { to: "/iacoach", icon: Bot, label: "Coach" },
   { to: "/social", icon: Users, label: "Comunidade" },
   { to: "/perfil", icon: User, label: "Perfil" },
 ];
@@ -18,37 +26,51 @@ function TabItem({ to, icon: Icon, label, match }: Item) {
     <Link
       to={to as never}
       aria-label={label}
-      className={`relative flex h-[60px] w-full flex-col items-center justify-center gap-1 text-[10px] font-black leading-none transition-colors ${
-        active ? "text-white" : "text-[#555555]"
+      className={`relative flex h-16 min-w-0 flex-col items-center justify-center gap-1 text-[10px] font-black leading-none transition-colors ${
+        active ? "text-[#C8FF00]" : "text-white/40"
       }`}
     >
-      <Icon className="h-[22px] w-[22px]" strokeWidth={1.8} />
+      <Icon className="h-[21px] w-[21px]" strokeWidth={1.9} />
       <span className="max-w-full truncate whitespace-nowrap">{label}</span>
-      {active && <span className="absolute bottom-1.5 h-1 w-1 rounded-full bg-[#C8FF00]" />}
+      {active && <span className="absolute bottom-2 h-[3px] w-[3px] rounded-full bg-[#C8FF00]" />}
     </Link>
   );
 }
 
 export function BottomNav() {
+  const { pathname } = useLocation();
+  const [isTreinoAtivo, setIsTreinoAtivo] = useState(false);
+
+  useEffect(() => {
+    if (pathname !== "/treino") {
+      setIsTreinoAtivo(false);
+      return;
+    }
+
+    const handleStageChange = (event: Event) => {
+      const stage = (event as CustomEvent<{ stage?: string }>).detail?.stage;
+      setIsTreinoAtivo(stage === "active");
+    };
+
+    window.addEventListener("pulse-treino-stage", handleStageChange);
+    return () => window.removeEventListener("pulse-treino-stage", handleStageChange);
+  }, [pathname]);
+
+  if (pathname === "/treino" && isTreinoAtivo) return null;
+
   return (
-    <nav className="tab-bar" aria-label="Navegacao principal">
-      <div className="mx-auto grid h-[60px] w-full max-w-full grid-cols-5 items-center px-1">
-        {items.slice(0, 2).map((item) => (
-          <TabItem key={item.to} {...item} />
-        ))}
-        <Link
-          to="/treino"
-          aria-label="Iniciar treino"
-          className="relative flex h-[60px] w-full items-center justify-center"
-        >
-          <span className="absolute -top-4 grid h-14 w-14 place-items-center rounded-full bg-[#C8FF00] text-black shadow-[0_8px_18px_rgba(200,255,0,0.28)]">
-            <Plus className="h-7 w-7" strokeWidth={3} />
-          </span>
-        </Link>
-        {items.slice(2).map((item) => (
+    <motion.nav
+      aria-label="Navegacao principal"
+      className="tab-bar"
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, ease: "easeOut" }}
+    >
+      <div className="mx-auto grid h-16 w-full max-w-full grid-cols-5 items-center px-2">
+        {items.map((item) => (
           <TabItem key={item.to} {...item} />
         ))}
       </div>
-    </nav>
+    </motion.nav>
   );
 }
