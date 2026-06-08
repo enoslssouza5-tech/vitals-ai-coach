@@ -1,9 +1,7 @@
 import { Link, createFileRoute, useNavigate } from "@tanstack/react-router";
 import type React from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  ActivityList,
-} from "@/components/PulseUI";
+import { ActivityList } from "@/components/PulseUI";
 import { gerarTextoAnthropic } from "@/lib/anthropic-client";
 import {
   calcularStreak,
@@ -51,7 +49,7 @@ import {
   X,
   Zap,
 } from "lucide-react";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import type { TreinoRegistro } from "@/lib/treino-history";
 
 const containerVariants = {
@@ -142,16 +140,22 @@ function Dashboard() {
     >
       <HomeHero firstName={firstName} state={heroState} />
 
-      <motion.div className="px-4 space-y-3" variants={containerVariants} initial={false} animate="show">
-        <ScrollRevealSection
-          className="w-full bg-[#1A1A1A] rounded-2xl p-4 border border-white/5"
-        >
+      <motion.div
+        className="px-4 space-y-3"
+        variants={containerVariants}
+        initial={false}
+        animate="show"
+      >
+        <ScrollRevealSection className="w-full bg-[#1A1A1A] rounded-2xl p-4 border border-white/5">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 flex items-center gap-2">
               <Calendar className="w-4 h-4 text-[#C8FF00]" strokeWidth={1.7} />
               SEMANA
             </h2>
-            <Link to="/atividades" className="text-xs font-bold text-[#C8FF00] flex items-center gap-0.5">
+            <Link
+              to="/atividades"
+              className="text-xs font-bold text-[#C8FF00] flex items-center gap-0.5"
+            >
               DETALHES <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -163,18 +167,14 @@ function Dashboard() {
         </ScrollRevealBlock>
 
         {clima && clima.temp > 30 && (
-          <ScrollRevealSection
-            className="w-full bg-[#1A1A1A] rounded-2xl p-4 border border-[#C8FF00]/20"
-          >
+          <ScrollRevealSection className="w-full bg-[#1A1A1A] rounded-2xl p-4 border border-[#C8FF00]/20">
             <p className="text-sm leading-relaxed text-[#A0A0A0]">
               Calor alto hoje: {clima.temp} C. Hidrate-se antes do treino.
             </p>
           </ScrollRevealSection>
         )}
 
-        <ScrollRevealSection
-          className="w-full bg-[#111111] rounded-2xl p-4 border border-[#C8FF00]/20 overflow-hidden"
-        >
+        <ScrollRevealSection className="w-full bg-[#111111] rounded-2xl p-4 border border-[#C8FF00]/20 overflow-hidden">
           <div className="inline-flex items-center gap-1.5 bg-[#C8FF00]/10 rounded-full px-3 py-1 mb-3">
             <Sparkles className="w-3.5 h-3.5 text-[#C8FF00]" strokeWidth={1.7} />
             <span className="text-[10px] font-bold uppercase tracking-widest text-[#C8FF00]">
@@ -206,20 +206,23 @@ function Dashboard() {
           </button>
         </ScrollRevealSection>
 
-        <ScrollRevealSection
-          className="w-full rounded-2xl border border-white/5 bg-[#111111] p-4 shadow-[0_18px_45px_rgba(0,0,0,0.22)]"
-        >
+        <ScrollRevealSection className="w-full rounded-2xl border border-white/5 bg-[#111111] p-4 shadow-[0_18px_45px_rgba(0,0,0,0.22)]">
           <div className="mb-3 flex items-center justify-between">
             <div>
               <h2 className="text-base font-black text-white">Atividades recentes</h2>
-              <p className="mt-0.5 text-[11px] font-medium text-gray-500">Resumo dos ultimos treinos</p>
+              <p className="mt-0.5 text-[11px] font-medium text-gray-500">
+                Resumo dos ultimos treinos
+              </p>
             </div>
             <Link
               to="/atividades"
               className="group flex h-9 items-center gap-1 rounded-full border border-white/5 bg-white/[0.03] px-3 text-xs font-bold text-[#C8FF00] transition-colors duration-150 hover:bg-white/[0.06] active:bg-[#C8FF00]/10"
             >
               Ver todas
-              <ChevronRight className="h-3.5 w-3.5 transition-transform duration-150 group-active:translate-x-0.5" strokeWidth={2} />
+              <ChevronRight
+                className="h-3.5 w-3.5 transition-transform duration-150 group-active:translate-x-0.5"
+                strokeWidth={2}
+              />
             </Link>
           </div>
           <div className="mb-3 flex items-center justify-between rounded-xl border border-white/5 bg-[#0A0A0A] px-3 py-2.5">
@@ -229,7 +232,9 @@ function Dashboard() {
               </span>
               <div className="min-w-0">
                 <p className="truncate text-xs font-bold text-white">Melhoria recente no pace</p>
-                <p className="mt-0.5 text-[10px] text-gray-500">Recorde pessoal nos ultimos 30 dias</p>
+                <p className="mt-0.5 text-[10px] text-gray-500">
+                  Recorde pessoal nos ultimos 30 dias
+                </p>
               </div>
             </div>
             <span className="ml-3 shrink-0 text-[10px] font-semibold text-[#C8FF00]">+3%</span>
@@ -382,7 +387,10 @@ function buildHeroInsight({
     if (goalKm) {
       const remaining = Math.max(0, goalKm - currentWeekKm);
       if (remaining === 0) {
-        return { status: "ready", message: "Voce concluiu sua meta semanal com os treinos registrados." };
+        return {
+          status: "ready",
+          message: "Voce concluiu sua meta semanal com os treinos registrados.",
+        };
       }
       return {
         status: "ready",
@@ -412,7 +420,10 @@ function buildHeroInsight({
       cta: { label: "Iniciar treino", to: "/treino" },
     };
   } catch {
-    return { status: "error", message: "Nao consegui atualizar seu insight agora. Seus dados seguem preservados." };
+    return {
+      status: "error",
+      message: "Nao consegui atualizar seu insight agora. Seus dados seguem preservados.",
+    };
   }
 }
 
@@ -443,14 +454,20 @@ function readNextRace() {
   return races.sort((a, b) => a.dateValue.getTime() - b.dateValue.getTime())[0] ?? null;
 }
 
-function raceInsight(race: SavedRace & { dateValue: Date }, treinos: TreinoRegistro[], currentWeekKm: number) {
+function raceInsight(
+  race: SavedRace & { dateValue: Date },
+  treinos: TreinoRegistro[],
+  currentWeekKm: number,
+) {
   const daysLeft = daysBetween(startOfDay(new Date()), race.dateValue);
   const raceName = race.nome ?? race.name ?? race.titulo ?? race.title ?? "sua proxima prova";
   const weekRuns = treinosDaSemana(treinos).filter((treino) => kmTreino(treino) > 0);
   const targetKm = Number(race.metaKm ?? race.targetKm ?? readWeeklyGoal() ?? 0);
 
-  if (daysLeft <= 0) return `Sua prova e hoje. Use os treinos registrados para ajustar o aquecimento.`;
-  if (daysLeft <= 2) return `Sua prova e neste fim de semana. Hoje e um bom dia para manter tudo leve.`;
+  if (daysLeft <= 0)
+    return `Sua prova e hoje. Use os treinos registrados para ajustar o aquecimento.`;
+  if (daysLeft <= 2)
+    return `Sua prova e neste fim de semana. Hoje e um bom dia para manter tudo leve.`;
   if (targetKm > 0 && currentWeekKm < targetKm * 0.8) {
     return `Faltam ${daysLeft} dias para ${raceName} e voce treinou ${formatKm(currentWeekKm)} km esta semana.`;
   }
@@ -461,9 +478,12 @@ function raceInsight(race: SavedRace & { dateValue: Date }, treinos: TreinoRegis
 }
 
 function recentEvolutionInsight(treinos: TreinoRegistro[]) {
-  const sorted = [...treinos].sort((a, b) => new Date(b.data).getTime() - new Date(a.data).getTime());
+  const sorted = [...treinos].sort(
+    (a, b) => new Date(b.data).getTime() - new Date(a.data).getTime(),
+  );
   const weekCount = treinosDaSemana(sorted).length;
-  if (weekCount > 0) return `Voce completou ${weekCount} ${weekCount === 1 ? "treino" : "treinos"} nesta semana.`;
+  if (weekCount > 0)
+    return `Voce completou ${weekCount} ${weekCount === 1 ? "treino" : "treinos"} nesta semana.`;
 
   const lastSeven = totalKmBetween(sorted, 0, 7);
   const previousSeven = totalKmBetween(sorted, 7, 14);
@@ -560,10 +580,16 @@ function WeeklySummaryCards() {
             <Icon className="w-4 h-4 text-[#C8FF00] mb-1" strokeWidth={1.7} />
             <span className="text-base font-black text-white leading-none">
               {item.value}
-              {item.unit && <span className="text-[9px] text-gray-500 inline ml-0.5">{item.unit}</span>}
+              {item.unit && (
+                <span className="text-[9px] text-gray-500 inline ml-0.5">{item.unit}</span>
+              )}
             </span>
-            <span className="text-[9px] text-gray-500 uppercase tracking-wide mt-0.5">{item.label}</span>
-            <span className={`text-[10px] font-bold mt-1 ${item.positive ? "text-[#C8FF00]" : "text-[#FF4444]"}`}>
+            <span className="text-[9px] text-gray-500 uppercase tracking-wide mt-0.5">
+              {item.label}
+            </span>
+            <span
+              className={`text-[10px] font-bold mt-1 ${item.positive ? "text-[#C8FF00]" : "text-[#FF4444]"}`}
+            >
               {item.delta}
             </span>
           </button>
@@ -593,35 +619,20 @@ function ReadinessRing({ value }: { value: number }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-lg font-black text-white leading-none">{value}%</span>
-        <span className="text-[8px] text-gray-500 uppercase tracking-wide">
-          Prep.
-        </span>
+        <span className="text-[8px] text-gray-500 uppercase tracking-wide">Prep.</span>
       </div>
     </div>
   );
 }
 
-function SignalMetric({
-  label,
-  value,
-  status,
-}: {
-  label: string;
-  value: string;
-  status: string;
-}) {
-  const statusClass =
-    status.toLowerCase() === "ok" ? "text-gray-400" : "text-[#C8FF00]";
+function SignalMetric({ label, value, status }: { label: string; value: string; status: string }) {
+  const statusClass = status.toLowerCase() === "ok" ? "text-gray-400" : "text-[#C8FF00]";
 
   return (
     <div className="bg-[#0A0A0A] rounded-xl p-3">
-      <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">
-        {label}
-      </div>
+      <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">{label}</div>
       <div className="text-xl font-black text-white leading-none">{value}</div>
-      <div className={`text-[10px] font-semibold mt-1 ${statusClass}`}>
-        {status}
-      </div>
+      <div className={`text-[10px] font-semibold mt-1 ${statusClass}`}>{status}</div>
     </div>
   );
 }
@@ -642,7 +653,8 @@ function ReadinessCard({ fallbackCheckin }: { fallbackCheckin?: RecuperacaoDia }
 
   useEffect(() => {
     const today = dataISO(new Date());
-    const todayCheckin = readTodayCheckin(today) ?? (fallbackCheckin?.data === today ? fallbackCheckin : null);
+    const todayCheckin =
+      readTodayCheckin(today) ?? (fallbackCheckin?.data === today ? fallbackCheckin : null);
     setCheckin(todayCheckin);
   }, [fallbackCheckin]);
 
@@ -680,7 +692,12 @@ function ReadinessCard({ fallbackCheckin }: { fallbackCheckin?: RecuperacaoDia }
               stroke="#1A1A1A"
               strokeWidth="6"
             />
-            <text x="32" y="40" textAnchor="middle" className="fill-[#333333] text-[22px] font-black">
+            <text
+              x="32"
+              y="40"
+              textAnchor="middle"
+              className="fill-[#333333] text-[22px] font-black"
+            >
               ?
             </text>
           </svg>
@@ -708,10 +725,12 @@ function ReadinessCard({ fallbackCheckin }: { fallbackCheckin?: RecuperacaoDia }
         type="button"
         className="group relative flex w-full min-h-[226px] flex-col overflow-hidden rounded-2xl border border-white/[0.08] bg-[linear-gradient(145deg,#1A1A1A,#101010)] p-4 text-left shadow-[0_18px_42px_rgba(0,0,0,0.28)] transition-all duration-200 hover:border-white/15 hover:bg-[#181818] active:scale-[0.985] active:border-[#C8FF00]/20 cursor-pointer"
         onClick={() => setDetailsOpen(true)}
-        style={{
-          borderColor: readinessBorder(checkin.score),
-          "--score-color": scoreColor,
-        } as React.CSSProperties}
+        style={
+          {
+            borderColor: readinessBorder(checkin.score),
+            "--score-color": scoreColor,
+          } as React.CSSProperties
+        }
       >
         <span className="absolute inset-0 bg-[#C8FF00]/[0.025] opacity-0 transition-opacity duration-200 group-active:opacity-100" />
         <span className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-[#C8FF00]/5 blur-2xl" />
@@ -793,12 +812,7 @@ function ReadinessCard({ fallbackCheckin }: { fallbackCheckin?: RecuperacaoDia }
   );
 }
 
-function WeeklyFocusCard({
-  currentKm,
-}: {
-  currentKm: number;
-  defaultTargetKm: number;
-}) {
+function WeeklyFocusCard({ currentKm }: { currentKm: number; defaultTargetKm: number }) {
   const navigate = useNavigate();
   const [goalKm, setGoalKm] = useState<number | null>(null);
   const [draftKm, setDraftKm] = useState(40);
@@ -824,7 +838,10 @@ function WeeklyFocusCard({
 
   const saveGoal = () => {
     const nextGoal = Math.max(5, Math.min(200, draftKm));
-    localStorage.setItem("pulse_weekly_goal", JSON.stringify({ km: nextGoal, updatedAt: new Date().toISOString() }));
+    localStorage.setItem(
+      "pulse_weekly_goal",
+      JSON.stringify({ km: nextGoal, updatedAt: new Date().toISOString() }),
+    );
     setGoalKm(nextGoal);
     setConfigOpen(false);
     setOptionsOpen(false);
@@ -835,14 +852,18 @@ function WeeklyFocusCard({
       <>
         <button
           type="button"
-        className="group relative w-full min-h-[226px] overflow-hidden rounded-2xl border border-white/[0.08] bg-[linear-gradient(145deg,#1A1A1A,#101010)] p-4 text-left shadow-[0_18px_42px_rgba(0,0,0,0.28)] transition-all duration-200 hover:border-white/15 hover:bg-[#181818] active:scale-[0.985] active:border-[#C8FF00]/20 cursor-pointer"
+          className="group relative w-full min-h-[226px] overflow-hidden rounded-2xl border border-white/[0.08] bg-[linear-gradient(145deg,#1A1A1A,#101010)] p-4 text-left shadow-[0_18px_42px_rgba(0,0,0,0.28)] transition-all duration-200 hover:border-white/15 hover:bg-[#181818] active:scale-[0.985] active:border-[#C8FF00]/20 cursor-pointer"
           onClick={() => setConfigOpen(true)}
         >
           <div className="absolute inset-0 bg-[#C8FF00]/[0.025] opacity-0 transition-opacity duration-200 group-active:opacity-100" />
           <div className="relative flex items-start justify-between gap-3">
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">Meta semanal</p>
-              <h3 className="mt-1 text-base font-black leading-tight text-white">Defina seu alvo</h3>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                Meta semanal
+              </p>
+              <h3 className="mt-1 text-base font-black leading-tight text-white">
+                Defina seu alvo
+              </h3>
             </div>
             <div className="grid h-10 w-10 place-items-center rounded-xl border border-white/5 bg-white/[0.03]">
               <Target className="h-4 w-4 text-[#C8FF00]" strokeWidth={1.7} />
@@ -885,13 +906,17 @@ function WeeklyFocusCard({
         type="button"
         className="group relative w-full min-h-[226px] overflow-hidden rounded-2xl border border-white/[0.08] bg-[linear-gradient(145deg,#1A1A1A,#101010)] p-4 text-left shadow-[0_18px_42px_rgba(0,0,0,0.28)] transition-all duration-200 hover:border-white/15 hover:bg-[#181818] active:scale-[0.985] active:border-[#C8FF00]/20 cursor-pointer"
         onClick={() => setOptionsOpen(true)}
-        style={{
-          borderColor: completed ? "rgba(255,215,0,0.3)" : undefined,
-          "--meta-color": progressColor,
-        } as React.CSSProperties}
+        style={
+          {
+            borderColor: completed ? "rgba(255,215,0,0.3)" : undefined,
+            "--meta-color": progressColor,
+          } as React.CSSProperties
+        }
       >
         <div className="absolute inset-0 bg-[#C8FF00]/[0.025] opacity-0 transition-opacity duration-200 group-active:opacity-100" />
-        {completed && <span className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-[#C8FF00]/5 blur-2xl" />}
+        {completed && (
+          <span className="pointer-events-none absolute -right-10 -top-10 h-24 w-24 rounded-full bg-[#C8FF00]/5 blur-2xl" />
+        )}
         <div className="relative flex items-start justify-between gap-2">
           <div>
             <div className="text-[10px] font-black uppercase tracking-[2px] text-[#555555]">
@@ -905,7 +930,10 @@ function WeeklyFocusCard({
         </div>
         {completed && <div className="meta-complete-badge">✦ META BATIDA</div>}
         <div className="relative mt-4 rounded-xl border border-white/5 bg-[#0A0A0A]/70 p-3">
-          <div className="text-2xl font-black text-white" style={{ color: completed ? "#FFD700" : undefined }}>
+          <div
+            className="text-2xl font-black text-white"
+            style={{ color: completed ? "#FFD700" : undefined }}
+          >
             {formatKm(currentKm)} <span>km</span>
           </div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[0.06]">
@@ -1168,8 +1196,10 @@ function weeklyProgressColor(progress: number) {
 function weeklyNextStep(progress: number, remainingKm: number) {
   if (progress <= 30) return { icon: Zap, text: "Começar hoje com 7 km leves" };
   if (progress <= 60) return { icon: TrendingUp, text: "Você está no ritmo certo" };
-  if (progress <= 85) return { icon: Flag, text: `${formatKm(remainingKm)} km para bater a meta essa semana` };
-  if (progress < 100) return { icon: Star, text: `Quase lá! ${formatKm(remainingKm)} km para completar` };
+  if (progress <= 85)
+    return { icon: Flag, text: `${formatKm(remainingKm)} km para bater a meta essa semana` };
+  if (progress < 100)
+    return { icon: Star, text: `Quase lá! ${formatKm(remainingKm)} km para completar` };
   return { icon: Trophy, text: "Meta da semana concluída!" };
 }
 
@@ -1179,9 +1209,23 @@ function formatKm(value: number) {
 
 type WeatherDay = {
   label: string;
+  date: string;
   icon: string;
   max: number;
+  min: number;
   rainChance: number;
+};
+
+type WeatherHour = {
+  time: string;
+  hour: number;
+  temp: number;
+  feelsLike?: number;
+  humidity?: number;
+  wind?: number;
+  rain?: number;
+  condition: string;
+  icon: string;
 };
 
 type WeatherState = {
@@ -1193,10 +1237,368 @@ type WeatherState = {
   rain: number;
   condition: string;
   icon: string;
+  hourly: WeatherHour[];
   forecast: WeatherDay[];
 };
 
 function WeatherCard({ city }: { city: string }) {
+  const [weather, setWeather] = useState<WeatherState | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [reloadToken, setReloadToken] = useState(0);
+  const [displayTemp, setDisplayTemp] = useState(0);
+  const [selectedHourIndex, setSelectedHourIndex] = useState(0);
+  const [daysOpen, setDaysOpen] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
+  const apiKey =
+    import.meta.env.VITE_WEATHER_API_KEY ||
+    import.meta.env.WEATHER_API_KEY ||
+    import.meta.env.VITE_OPENWEATHER_API_KEY ||
+    "";
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadWeather() {
+      let coords: { lat: number; lon: number } | null = null;
+      try {
+        coords = await getWeatherCoords(city);
+        if (!coords) throw new Error("coords");
+        const fallback = await fetchOpenMeteoWeather(coords, city);
+
+        if (!apiKey) {
+          if (!cancelled) setWeather(fallback);
+          return;
+        }
+
+        try {
+          const params = new URLSearchParams({
+            appid: apiKey,
+            units: "metric",
+            lang: "pt_br",
+            lat: String(coords.lat),
+            lon: String(coords.lon),
+          });
+          const currentResponse = await fetch(
+            `https://api.openweathermap.org/data/2.5/weather?${params.toString()}`,
+          );
+          if (!currentResponse.ok) throw new Error("weather");
+          const current = await currentResponse.json();
+          const currentRain = current.rain?.["1h"]
+            ? Math.min(100, Number(current.rain["1h"]) * 25)
+            : 0;
+
+          if (!cancelled) {
+            setWeather({
+              ...fallback,
+              locationLabel: formatOpenWeatherLocation(current, city),
+              temp: Math.round(current.main?.temp ?? fallback.temp),
+              feelsLike: Math.round(
+                current.main?.feels_like ?? current.main?.temp ?? fallback.feelsLike,
+              ),
+              humidity: Math.round(current.main?.humidity ?? fallback.humidity),
+              wind: Math.round((current.wind?.speed ?? fallback.wind / 3.6) * 3.6),
+              rain: Math.round(Math.max(currentRain, fallback.rain)),
+              condition: capitalize(current.weather?.[0]?.description ?? fallback.condition),
+              icon: current.weather?.[0]?.icon ?? fallback.icon,
+            });
+          }
+        } catch {
+          if (!cancelled) setWeather(fallback);
+        }
+      } catch {
+        if (!cancelled) setWeather(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+
+    loadWeather();
+    const interval = window.setInterval(loadWeather, 10 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [apiKey, city, reloadToken]);
+
+  useEffect(() => {
+    if (!weather) {
+      setDisplayTemp(0);
+      return;
+    }
+    setSelectedHourIndex(0);
+    if (weather.temp <= 0) {
+      setDisplayTemp(weather.temp);
+      return;
+    }
+    let frame = 0;
+    let start: number | null = null;
+    const animate = (timestamp: number) => {
+      start ??= timestamp;
+      const progress = Math.min(1, (timestamp - start) / 560);
+      setDisplayTemp(Math.round(weather.temp * progress));
+      if (progress < 1) frame = window.requestAnimationFrame(animate);
+    };
+    frame = window.requestAnimationFrame(animate);
+    return () => window.cancelAnimationFrame(frame);
+  }, [weather]);
+
+  const selectedHour = weather?.hourly[selectedHourIndex] ?? null;
+  const activeWeather = weather
+    ? {
+        ...weather,
+        temp: selectedHour?.temp ?? weather.temp,
+        feelsLike: selectedHour?.feelsLike ?? weather.feelsLike,
+        humidity: selectedHour?.humidity ?? weather.humidity,
+        wind: selectedHour?.wind ?? weather.wind,
+        rain: selectedHour?.rain ?? weather.rain,
+        condition: selectedHour?.condition ?? weather.condition,
+        icon: selectedHour?.icon ?? weather.icon,
+      }
+    : null;
+  const recommendation = activeWeather
+    ? weatherRecommendation(
+        activeWeather.temp,
+        activeWeather.humidity,
+        activeWeather.wind,
+        activeWeather.rain,
+      )
+    : null;
+  const iconMeta = activeWeather
+    ? getWeatherIconMeta(activeWeather.icon)
+    : getWeatherIconMeta("04d");
+  const runWindow = weather ? findBestRunWindow(weather.hourly) : null;
+  const weatherAlert = activeWeather ? buildWeatherAlert(activeWeather) : null;
+  const raceWeather = weather ? buildRaceWeather(weather.forecast) : null;
+  const scene = activeWeather
+    ? getWeatherScene(activeWeather.icon, selectedHour?.hour)
+    : getWeatherScene("04d");
+
+  return (
+    <section className="w-full">
+      {loading && !weather ? (
+        <WeatherSkeleton />
+      ) : weather && activeWeather && recommendation ? (
+        <motion.div
+          className={`relative overflow-hidden rounded-2xl border border-white/[0.08] p-4 text-white shadow-[0_18px_48px_rgba(0,0,0,0.34)] ${scene.className}`}
+          initial={{ opacity: 0, y: 14, scale: 0.985 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.36, ease: "easeOut" }}
+        >
+          <motion.div
+            className="pointer-events-none absolute inset-0"
+            animate={prefersReducedMotion ? undefined : { opacity: [0.72, 1, 0.72] }}
+            transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+            aria-hidden="true"
+          >
+            <span className="absolute -right-10 top-6 h-32 w-32 rounded-full bg-white/10 blur-2xl" />
+            <span className="absolute left-6 top-28 h-20 w-32 rounded-full bg-white/[0.07] blur-2xl" />
+            {scene.rain && (
+              <span className="absolute inset-x-0 top-0 h-full bg-[linear-gradient(115deg,transparent_0%,rgba(255,255,255,0.12)_48%,transparent_52%)] opacity-20" />
+            )}
+          </motion.div>
+
+          <div className="relative z-10">
+            <div className="flex items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex items-center gap-1 text-xs text-white/70">
+                  <MapPin className="h-3 w-3" aria-hidden="true" />
+                  <span className="truncate">{weather.locationLabel}</span>
+                </div>
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={`${activeWeather.temp}-${activeWeather.condition}`}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    transition={{ duration: 0.24, ease: "easeOut" }}
+                  >
+                    <div className="mt-3 text-6xl font-black leading-none tracking-[-0.05em] text-white">
+                      <span>{selectedHour ? activeWeather.temp : displayTemp}</span>
+                      <span className="align-top text-2xl tracking-normal">C</span>
+                    </div>
+                    <div className="mt-1 text-sm font-semibold text-white/80">
+                      {activeWeather.condition}
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+              <motion.div
+                className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/10 text-white"
+                animate={prefersReducedMotion ? undefined : { y: [0, -4, 0] }}
+                transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+              >
+                <iconMeta.Icon className="h-8 w-8" strokeWidth={1.5} />
+              </motion.div>
+            </div>
+
+            <div
+              className="mt-4 flex items-start gap-3 rounded-2xl border border-white/10 bg-black/18 p-3"
+              style={{ color: recommendation.color }}
+            >
+              <recommendation.Icon className="mt-0.5 h-4 w-4 shrink-0" strokeWidth={1.8} />
+              <div>
+                <p className="text-sm font-black leading-snug text-white">{recommendation.text}</p>
+                {weatherAlert && (
+                  <p className="mt-1 text-xs font-medium leading-snug text-white/68">
+                    {weatherAlert}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {runWindow && (
+              <div className="mt-3 rounded-2xl border border-white/10 bg-black/16 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[10px] font-black uppercase tracking-[0.18em] text-white/55">
+                    Janela ideal
+                  </span>
+                  <span className="text-sm font-black text-white">{runWindow.range}</span>
+                </div>
+                <p className="mt-1 text-xs leading-snug text-white/62">{runWindow.reason}</p>
+              </div>
+            )}
+
+            {weather.hourly.length > 0 && (
+              <div className="mt-4 -mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex gap-2">
+                  {weather.hourly.map((hour, index) => {
+                    const hourIcon = getWeatherIconMeta(hour.icon);
+                    const active = index === selectedHourIndex;
+                    return (
+                      <motion.button
+                        key={`${hour.time}-${index}`}
+                        type="button"
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => setSelectedHourIndex(index)}
+                        className={`min-h-[88px] w-[58px] shrink-0 rounded-2xl border px-2 py-2 text-center transition-colors duration-200 ${
+                          active
+                            ? "border-[#C8FF00]/70 bg-[#C8FF00]/15 text-white"
+                            : "border-white/10 bg-black/16 text-white/68"
+                        }`}
+                      >
+                        <span className="text-[11px] font-black">{hour.time}</span>
+                        <hourIcon.Icon className="mx-auto mt-2 h-4 w-4" strokeWidth={1.5} />
+                        <span className="mt-2 block text-sm font-black">{hour.temp}C</span>
+                        {typeof hour.rain === "number" && hour.rain > 0 && (
+                          <span className="mt-1 block text-[10px] font-bold text-[#9CCBFF]">
+                            {hour.rain}%
+                          </span>
+                        )}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4 grid grid-cols-4 gap-2">
+              <WeatherMetric
+                icon={<Thermometer />}
+                label="Sens."
+                value={activeWeather.feelsLike}
+                unit="C"
+              />
+              <WeatherMetric
+                icon={<Droplets />}
+                label="Umid."
+                value={activeWeather.humidity}
+                unit="%"
+              />
+              <WeatherMetric icon={<Wind />} label="Vento" value={activeWeather.wind} unit="km/h" />
+              <WeatherMetric
+                icon={<CloudRain />}
+                label="Chuva"
+                value={activeWeather.rain}
+                unit="%"
+              />
+            </div>
+
+            {weather.forecast.length > 0 && (
+              <div className="mt-4 rounded-2xl border border-white/10 bg-black/16">
+                <button
+                  type="button"
+                  onClick={() => setDaysOpen((value) => !value)}
+                  className="flex min-h-12 w-full items-center justify-between px-3 text-left"
+                >
+                  <span className="text-sm font-black text-white">Proximos dias</span>
+                  <ChevronRight
+                    className={`h-4 w-4 text-white/55 transition-transform ${daysOpen ? "rotate-90" : ""}`}
+                  />
+                </button>
+                <AnimatePresence initial={false}>
+                  {daysOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.24, ease: "easeOut" }}
+                      className="overflow-hidden px-3 pb-3"
+                    >
+                      {weather.forecast.map((day) => {
+                        const dayIcon = getWeatherIconMeta(day.icon);
+                        return (
+                          <div
+                            className="flex min-h-10 items-center justify-between gap-2 border-t border-white/10 text-sm"
+                            key={day.date}
+                          >
+                            <span className="w-10 text-xs font-black text-white/58">
+                              {day.label}
+                            </span>
+                            <dayIcon.Icon className="h-4 w-4 text-white/65" strokeWidth={1.5} />
+                            <span className="font-black text-white">
+                              {day.max} / {day.min}C
+                            </span>
+                            <span className="w-10 text-right text-xs font-bold text-[#9CCBFF]">
+                              {day.rainChance > 0 ? `${day.rainChance}%` : ""}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )}
+
+            {raceWeather && (
+              <div className="mt-3 rounded-2xl border border-white/10 bg-black/16 p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-black text-white">{raceWeather.name}</span>
+                  <span className="text-[11px] font-bold text-white/58">
+                    Faltam {raceWeather.daysLeft} dias
+                  </span>
+                </div>
+                <p className="mt-1 text-xs text-white/68">
+                  {raceWeather.temp}C, {raceWeather.rain}% chuva. {raceWeather.condition}
+                </p>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      ) : (
+        <div className="rounded-2xl border border-white/[0.06] bg-[#111111] p-4">
+          <div className="flex items-center gap-3 text-gray-500">
+            <WifiOff className="w-5 h-5" aria-hidden="true" />
+            <div>
+              <p className="text-sm">Clima indisponivel - verifique sua conexao</p>
+              <button
+                type="button"
+                onClick={() => {
+                  setLoading(true);
+                  setReloadToken((value) => value + 1);
+                }}
+                className="mt-2 min-h-8 text-xs font-bold text-[#C8FF00]"
+              >
+                Tentar novamente
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function WeatherCardLegacy({ city }: { city: string }) {
   const [weather, setWeather] = useState<WeatherState | null>(null);
   const [loading, setLoading] = useState(true);
   const [displayTemp, setDisplayTemp] = useState(0);
@@ -1260,8 +1662,11 @@ function WeatherCard({ city }: { city: string }) {
         if (!forecastResponse.ok) throw new Error("forecast");
         const forecast = await forecastResponse.json();
         const forecastDays = buildForecast(forecast.list ?? []);
-        const currentRain = current.rain?.["1h"] ? Math.min(100, Number(current.rain["1h"]) * 25) : 0;
+        const currentRain = current.rain?.["1h"]
+          ? Math.min(100, Number(current.rain["1h"]) * 25)
+          : 0;
         const nextRain = forecast.list?.[0]?.pop ? Number(forecast.list[0].pop) * 100 : 0;
+        const openMeteo = coords ? await fetchOpenMeteoWeather(coords, city) : null;
         if (cancelled) return;
         setWeather({
           locationLabel: formatOpenWeatherLocation(current, city),
@@ -1272,7 +1677,8 @@ function WeatherCard({ city }: { city: string }) {
           rain: Math.round(Math.max(currentRain, nextRain)),
           condition: capitalize(current.weather?.[0]?.description ?? "Clima local"),
           icon: current.weather?.[0]?.icon ?? "04d",
-          forecast: forecastDays,
+          hourly: openMeteo?.hourly ?? [],
+          forecast: openMeteo?.forecast.length ? openMeteo.forecast : forecastDays,
         });
       } catch {
         try {
@@ -1358,14 +1764,18 @@ function WeatherCard({ city }: { city: string }) {
               label="SENS"
               value={weather.feelsLike}
               unit="°C"
-              tone={weather.feelsLike > 30 ? "#FF4444" : weather.feelsLike < 10 ? "#88CCFF" : undefined}
+              tone={
+                weather.feelsLike > 30 ? "#FF4444" : weather.feelsLike < 10 ? "#88CCFF" : undefined
+              }
             />
             <WeatherMetric
               icon={<Droplets />}
               label="UMID"
               value={weather.humidity}
               unit="%"
-              tone={weather.humidity > 90 ? "#FF4444" : weather.humidity > 80 ? "#FF9800" : undefined}
+              tone={
+                weather.humidity > 90 ? "#FF4444" : weather.humidity > 80 ? "#FF9800" : undefined
+              }
             />
             <WeatherMetric
               icon={<Wind />}
@@ -1389,7 +1799,9 @@ function WeatherCard({ city }: { city: string }) {
           </div>
 
           <div className="mt-3">
-            <div className="mb-1 text-xs font-bold uppercase tracking-widest text-gray-400">Proximos dias</div>
+            <div className="mb-1 text-xs font-bold uppercase tracking-widest text-gray-400">
+              Proximos dias
+            </div>
             <div>
               {(weather.forecast.length ? weather.forecast : buildEmptyForecast()).map((day) => {
                 const dayIcon = getWeatherIconMeta(day.icon);
@@ -1434,6 +1846,8 @@ function WeatherCard({ city }: { city: string }) {
   );
 }
 
+void WeatherCardLegacy;
+
 function WeatherSkeleton() {
   return (
     <div className="flex items-start justify-between gap-4">
@@ -1464,17 +1878,120 @@ function WeatherMetric({
   tone?: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-0.5">
-      <span className="w-3 h-3 text-gray-500 [&>svg]:w-3 [&>svg]:h-3" style={{ color: tone }}>
+    <div className="flex min-h-[72px] flex-col items-center justify-center gap-1 rounded-2xl border border-white/10 bg-black/16 px-1 text-center">
+      <span className="w-3 h-3 text-white/56 [&>svg]:w-3 [&>svg]:h-3" style={{ color: tone }}>
         {icon}
       </span>
-      <span className="text-[9px] text-gray-500 uppercase">{label}</span>
+      <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-white/48">
+        {label}
+      </span>
       <span className="text-sm font-bold text-white" style={{ color: tone }}>
         {value}
-        <span className="text-[9px] text-gray-500"> {unit}</span>
+        <span className="text-[9px] text-white/45"> {unit}</span>
       </span>
     </div>
   );
+}
+
+function weatherScore(hour: WeatherHour) {
+  const temp = hour.feelsLike ?? hour.temp;
+  const humidity = hour.humidity ?? 70;
+  const wind = hour.wind ?? 0;
+  const rain = hour.rain ?? 0;
+  let score = 100;
+  if (temp < 10) score -= (10 - temp) * 4;
+  if (temp > 24) score -= (temp - 24) * 5;
+  if (humidity > 75) score -= (humidity - 75) * 0.8;
+  if (wind > 24) score -= (wind - 24) * 1.4;
+  score -= rain * 0.9;
+  return Math.max(0, Math.round(score));
+}
+
+function findBestRunWindow(hourly: WeatherHour[]) {
+  if (!hourly.length) return null;
+  const candidates = hourly
+    .filter((hour) => hour.hour >= 5 && hour.hour <= 22)
+    .map((hour) => ({ hour, score: weatherScore(hour) }))
+    .filter((item) => item.score >= 62);
+  if (!candidates.length) return null;
+
+  const best = candidates.sort((a, b) => b.score - a.score)[0];
+  const start = best.hour.hour;
+  const end = Math.min(23, start + 2);
+  const rain = best.hour.rain ?? 0;
+  const reason =
+    rain > 20
+      ? "Menor risco de chuva dentro da previsao disponivel."
+      : "Temperatura, vento e umidade mais favoraveis para correr.";
+  return {
+    range: `${String(start).padStart(2, "0")}h as ${String(end).padStart(2, "0")}h`,
+    reason,
+  };
+}
+
+function buildWeatherAlert(
+  weather: Pick<WeatherState, "temp" | "feelsLike" | "humidity" | "wind" | "rain">,
+) {
+  if (weather.rain >= 45) return "Possibilidade de chuva. Planeje rota curta ou treino protegido.";
+  if (weather.feelsLike >= 30 && weather.humidity >= 70) {
+    return "Calor e umidade aumentam o esforco percebido. Hidrate-se antes de sair.";
+  }
+  if (weather.wind >= 28) return "Vento pode alterar o pace. Comece controlado.";
+  if (weather.feelsLike >= 15 && weather.feelsLike <= 23 && weather.rain < 20) {
+    return "Temperatura confortavel para rodagem e treinos longos.";
+  }
+  return null;
+}
+
+function buildRaceWeather(forecast: WeatherDay[]) {
+  const race = readNextRace();
+  if (!race) return null;
+  const daysLeft = daysBetween(startOfDay(new Date()), race.dateValue);
+  if (daysLeft < 0) return null;
+  const key = race.dateValue.toISOString().slice(0, 10);
+  const day = forecast.find((item) => item.date === key);
+  if (!day) return null;
+  const raceName = race.nome ?? race.name ?? race.titulo ?? race.title ?? "Proxima prova";
+  const condition = day.rainChance >= 50 ? "Atenção para chuva" : "Condicao favoravel";
+  return { name: raceName, daysLeft, temp: day.max, rain: day.rainChance, condition };
+}
+
+function getWeatherScene(iconCode: string, hour = new Date().getHours()) {
+  const rainy = iconCode.startsWith("09") || iconCode.startsWith("10") || iconCode.startsWith("11");
+  const cloudy =
+    iconCode.startsWith("02") || iconCode.startsWith("03") || iconCode.startsWith("04");
+  const night = iconCode.endsWith("n") || hour >= 19 || hour <= 4;
+  const dawn = hour >= 5 && hour <= 8;
+  const evening = hour >= 17 && hour <= 18;
+  if (rainy)
+    return {
+      className: "bg-[linear-gradient(160deg,#121826_0%,#172033_48%,#090B10_100%)]",
+      rain: true,
+    };
+  if (night)
+    return {
+      className: "bg-[linear-gradient(160deg,#07111F_0%,#10182B_54%,#06070A_100%)]",
+      rain: false,
+    };
+  if (dawn)
+    return {
+      className: "bg-[linear-gradient(160deg,#24334B_0%,#895E45_50%,#101114_100%)]",
+      rain: false,
+    };
+  if (evening)
+    return {
+      className: "bg-[linear-gradient(160deg,#1C2434_0%,#72542F_52%,#0A0A0A_100%)]",
+      rain: false,
+    };
+  if (cloudy)
+    return {
+      className: "bg-[linear-gradient(160deg,#202733_0%,#151A20_52%,#090A0C_100%)]",
+      rain: false,
+    };
+  return {
+    className: "bg-[linear-gradient(160deg,#17375F_0%,#266C86_48%,#101316_100%)]",
+    rain: false,
+  };
 }
 
 function getWeatherIconMeta(iconCode: string) {
@@ -1506,13 +2023,25 @@ function weatherRecommendation(temp: number, humidity: number, windKmh: number, 
     return { Icon: CloudRain, text: "Chuva provável - considere treino indoor.", color: "#8888FF" };
   }
   if (temp > 35) {
-    return { Icon: Thermometer, text: "Muito quente - prefira manhã cedo ou após as 18h.", color: "#FF4444" };
+    return {
+      Icon: Thermometer,
+      text: "Muito quente - prefira manhã cedo ou após as 18h.",
+      color: "#FF4444",
+    };
   }
   if (temp > 28 && humidity > 70) {
-    return { Icon: Droplets, text: "Calor e umidade alta - hidrate-se muito bem.", color: "#FF9800" };
+    return {
+      Icon: Droplets,
+      text: "Calor e umidade alta - hidrate-se muito bem.",
+      color: "#FF9800",
+    };
   }
   if (humidity > 85) {
-    return { Icon: Droplets, text: "Umidade alta - esforço parece maior. Reduza o pace.", color: "#FF9800" };
+    return {
+      Icon: Droplets,
+      text: "Umidade alta - esforço parece maior. Reduza o pace.",
+      color: "#FF9800",
+    };
   }
   if (temp < 10) {
     return { Icon: Thermometer, text: "Frio - aqueça bem antes de acelerar.", color: "#88CCFF" };
@@ -1529,8 +2058,10 @@ function weatherRecommendation(temp: number, humidity: number, windKmh: number, 
 function buildEmptyForecast(): WeatherDay[] {
   return ["SEG", "TER", "QUA", "QUI"].map((label) => ({
     label,
+    date: "",
     icon: "04d",
     max: 0,
+    min: 0,
     rainChance: 0,
   }));
 }
@@ -1539,31 +2070,60 @@ function buildForecast(
   list: Array<{
     dt?: number;
     dt_txt?: string;
-    main?: { temp_max?: number };
+    main?: { temp_max?: number; temp_min?: number };
     pop?: number;
     weather?: Array<{ icon?: string; main?: string }>;
   }>,
 ): WeatherDay[] {
   const today = new Date().toISOString().slice(0, 10);
-  const byDay = new Map<string, { label: string; temps: number[]; icons: string[]; rain: number[] }>();
+  const byDay = new Map<
+    string,
+    {
+      label: string;
+      date: string;
+      maxTemps: number[];
+      minTemps: number[];
+      icons: string[];
+      rain: number[];
+    }
+  >();
   list.forEach((item) => {
-    const date = item.dt ? new Date(item.dt * 1000) : item.dt_txt ? new Date(item.dt_txt.replace(" ", "T")) : null;
+    const date = item.dt
+      ? new Date(item.dt * 1000)
+      : item.dt_txt
+        ? new Date(item.dt_txt.replace(" ", "T"))
+        : null;
     if (!date) return;
     const key = date.toISOString().slice(0, 10);
     if (key === today) return;
-    const label = date.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "").toUpperCase();
-    const existing = byDay.get(key) ?? { label, temps: [], icons: [], rain: [] };
-    existing.temps.push(item.main?.temp_max ?? 0);
+    const label = date
+      .toLocaleDateString("pt-BR", { weekday: "short" })
+      .replace(".", "")
+      .toUpperCase();
+    const existing = byDay.get(key) ?? {
+      label,
+      date: key,
+      maxTemps: [],
+      minTemps: [],
+      icons: [],
+      rain: [],
+    };
+    existing.maxTemps.push(item.main?.temp_max ?? 0);
+    existing.minTemps.push(item.main?.temp_min ?? item.main?.temp_max ?? 0);
     existing.icons.push(item.weather?.[0]?.icon ?? "04d");
     existing.rain.push((item.pop ?? 0) * 100);
     byDay.set(key, existing);
   });
-  return Array.from(byDay.values()).slice(0, 4).map((day) => ({
-    label: day.label,
-    icon: day.icons[Math.floor(day.icons.length / 2)] ?? "04d",
-    max: Math.round(Math.max(...day.temps)),
-    rainChance: Math.round(Math.max(...day.rain)),
-  }));
+  return Array.from(byDay.values())
+    .slice(0, 4)
+    .map((day) => ({
+      label: day.label,
+      date: day.date,
+      icon: day.icons[Math.floor(day.icons.length / 2)] ?? "04d",
+      max: Math.round(Math.max(...day.maxTemps)),
+      min: Math.round(Math.min(...day.minTemps)),
+      rainChance: Math.round(Math.max(...day.rain)),
+    }));
 }
 
 async function fetchOpenMeteoWeather(
@@ -1573,9 +2133,19 @@ async function fetchOpenMeteoWeather(
   const url = new URL("https://api.open-meteo.com/v1/forecast");
   url.searchParams.set("latitude", String(coords.lat));
   url.searchParams.set("longitude", String(coords.lon));
-  url.searchParams.set("current", "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weathercode,wind_speed_10m");
-  url.searchParams.set("daily", "temperature_2m_max,weathercode");
-  url.searchParams.set("forecast_days", "4");
+  url.searchParams.set(
+    "current",
+    "temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weathercode,wind_speed_10m",
+  );
+  url.searchParams.set(
+    "hourly",
+    "temperature_2m,apparent_temperature,relative_humidity_2m,precipitation_probability,weathercode,wind_speed_10m",
+  );
+  url.searchParams.set(
+    "daily",
+    "temperature_2m_max,temperature_2m_min,precipitation_probability_max,weathercode",
+  );
+  url.searchParams.set("forecast_days", "7");
   url.searchParams.set("timezone", "auto");
 
   const response = await fetch(url.toString());
@@ -1583,6 +2153,7 @@ async function fetchOpenMeteoWeather(
   const data = await response.json();
   const current = data.current ?? {};
   const daily = data.daily ?? {};
+  const hourly = data.hourly ?? {};
 
   return {
     locationLabel: fallbackCity || "Local atual",
@@ -1593,24 +2164,67 @@ async function fetchOpenMeteoWeather(
     rain: Math.round(current.precipitation ? Math.min(100, Number(current.precipitation) * 25) : 0),
     condition: weatherCodeLabel(current.weathercode),
     icon: weatherCodeIcon(current.weathercode),
+    hourly: buildOpenMeteoHourly(hourly),
     forecast: buildOpenMeteoForecast(daily),
   };
+}
+
+function buildOpenMeteoHourly(hourly: {
+  time?: string[];
+  temperature_2m?: number[];
+  apparent_temperature?: number[];
+  relative_humidity_2m?: number[];
+  precipitation_probability?: number[];
+  weathercode?: number[];
+  wind_speed_10m?: number[];
+}): WeatherHour[] {
+  const now = new Date();
+  return (hourly.time ?? [])
+    .map((value, index) => {
+      const date = new Date(value);
+      return {
+        date,
+        item: {
+          time: `${String(date.getHours()).padStart(2, "0")}h`,
+          hour: date.getHours(),
+          temp: Math.round(hourly.temperature_2m?.[index] ?? 0),
+          feelsLike: Math.round(
+            hourly.apparent_temperature?.[index] ?? hourly.temperature_2m?.[index] ?? 0,
+          ),
+          humidity: Math.round(hourly.relative_humidity_2m?.[index] ?? 0),
+          wind: Math.round(hourly.wind_speed_10m?.[index] ?? 0),
+          rain: Math.round(hourly.precipitation_probability?.[index] ?? 0),
+          condition: weatherCodeLabel(hourly.weathercode?.[index]),
+          icon: weatherCodeIcon(hourly.weathercode?.[index], date.getHours()),
+        },
+      };
+    })
+    .filter(({ date }) => date >= now)
+    .slice(0, 16)
+    .map(({ item }) => item);
 }
 
 function buildOpenMeteoForecast(daily: {
   time?: string[];
   temperature_2m_max?: number[];
+  temperature_2m_min?: number[];
+  precipitation_probability_max?: number[];
   weathercode?: number[];
 }): WeatherDay[] {
-  return (daily.time ?? []).slice(1, 5).map((day, index) => {
+  return (daily.time ?? []).slice(1, 7).map((day, index) => {
     const date = new Date(`${day}T12:00:00`);
     const sourceIndex = index + 1;
-    const label = date.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "").toUpperCase();
+    const label = date
+      .toLocaleDateString("pt-BR", { weekday: "short" })
+      .replace(".", "")
+      .toUpperCase();
     return {
       label,
-      icon: weatherCodeIcon(daily.weathercode?.[sourceIndex]),
+      date: day,
+      icon: weatherCodeIcon(daily.weathercode?.[sourceIndex], 12),
       max: Math.round(daily.temperature_2m_max?.[sourceIndex] ?? 0),
-      rainChance: 0,
+      min: Math.round(daily.temperature_2m_min?.[sourceIndex] ?? 0),
+      rainChance: Math.round(daily.precipitation_probability_max?.[sourceIndex] ?? 0),
     };
   });
 }
@@ -1626,19 +2240,23 @@ function weatherCodeLabel(code?: number) {
   return "Clima local";
 }
 
-function weatherCodeIcon(code?: number) {
-  if (code === 0) return "Clear";
+function weatherCodeIcon(code?: number, hour = new Date().getHours()) {
+  const suffix = hour >= 19 || hour <= 5 ? "n" : "d";
+  if (code === 0) return `01${suffix}`;
   if ([51, 53, 55, 56, 57, 61, 63, 65, 66, 67, 80, 81, 82, 95, 96, 99].includes(code ?? -1)) {
-    return "10d";
+    return `10${suffix}`;
   }
-  if ([1, 2].includes(code ?? -1)) return "02d";
-  return "04d";
+  if ([1, 2].includes(code ?? -1)) return `02${suffix}`;
+  return `04${suffix}`;
 }
 
-function formatOpenWeatherLocation(data: {
-  name?: string;
-  sys?: { country?: string };
-}, fallbackCity: string) {
+function formatOpenWeatherLocation(
+  data: {
+    name?: string;
+    sys?: { country?: string };
+  },
+  fallbackCity: string,
+) {
   const name = data.name?.trim();
   const country = data.sys?.country?.trim();
   if (name && country) return `${name}, ${country}`;

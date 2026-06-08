@@ -23,6 +23,7 @@ import { Route as AppHistoricoRouteImport } from './routes/_app.historico'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppConfiguracoesRouteImport } from './routes/_app.configuracoes'
 import { Route as AppAtividadesRouteImport } from './routes/_app.atividades'
+import { Route as AppAtividadeActivityIdRouteImport } from './routes/_app.atividade.$activityId'
 
 const TreinoAtivoRoute = TreinoAtivoRouteImport.update({
   id: '/treino-ativo',
@@ -93,6 +94,11 @@ const AppAtividadesRoute = AppAtividadesRouteImport.update({
   path: '/atividades',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAtividadeActivityIdRoute = AppAtividadeActivityIdRouteImport.update({
+  id: '/atividade/$activityId',
+  path: '/atividade/$activityId',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/saude': typeof AppSaudeRoute
   '/social': typeof AppSocialRoute
   '/treino': typeof AppTreinoRoute
+  '/atividade/$activityId': typeof AppAtividadeActivityIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -123,6 +130,7 @@ export interface FileRoutesByTo {
   '/saude': typeof AppSaudeRoute
   '/social': typeof AppSocialRoute
   '/treino': typeof AppTreinoRoute
+  '/atividade/$activityId': typeof AppAtividadeActivityIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/_app/saude': typeof AppSaudeRoute
   '/_app/social': typeof AppSocialRoute
   '/_app/treino': typeof AppTreinoRoute
+  '/_app/atividade/$activityId': typeof AppAtividadeActivityIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -157,6 +166,7 @@ export interface FileRouteTypes {
     | '/saude'
     | '/social'
     | '/treino'
+    | '/atividade/$activityId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -172,6 +182,7 @@ export interface FileRouteTypes {
     | '/saude'
     | '/social'
     | '/treino'
+    | '/atividade/$activityId'
   id:
     | '__root__'
     | '/'
@@ -188,6 +199,7 @@ export interface FileRouteTypes {
     | '/_app/saude'
     | '/_app/social'
     | '/_app/treino'
+    | '/_app/atividade/$activityId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -297,6 +309,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAtividadesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/atividade/$activityId': {
+      id: '/_app/atividade/$activityId'
+      path: '/atividade/$activityId'
+      fullPath: '/atividade/$activityId'
+      preLoaderRoute: typeof AppAtividadeActivityIdRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -311,6 +330,7 @@ interface AppRouteChildren {
   AppSaudeRoute: typeof AppSaudeRoute
   AppSocialRoute: typeof AppSocialRoute
   AppTreinoRoute: typeof AppTreinoRoute
+  AppAtividadeActivityIdRoute: typeof AppAtividadeActivityIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -324,6 +344,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSaudeRoute: AppSaudeRoute,
   AppSocialRoute: AppSocialRoute,
   AppTreinoRoute: AppTreinoRoute,
+  AppAtividadeActivityIdRoute: AppAtividadeActivityIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
